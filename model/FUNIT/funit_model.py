@@ -187,7 +187,9 @@ class FUNITModel(nn.Module):
         if get_img == False:
             return torch.stack(translations).squeeze()
     
-    def pick_animals(self, qry, expansion_size=0, get_img = False, random=False, img_id=None): # only one qry
+    def pick_animals(self, qry, expansion_size=0, get_img = False, random=False, img_id=None, get_original=True): # only one qry
+        if expansion_size == 0:
+            get_original = True
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(self.train_loader)) # from train sampler, size: pool_size, 3, h, w
         candidate_neighbours = candidate_neighbours[0].cuda()
@@ -204,7 +206,10 @@ class FUNITModel(nn.Module):
         else:
             selected_nbs = candidate_neighbours[:expansion_size, :, :, :]
         class_code = self.compute_k_style(qry, 1)
-        translations = [self.translate_simple(qry, class_code)]
+        if get_original == True:
+            translations = [self.translate_simple(qry, class_code)]
+        else:
+            translations = []
         with torch.no_grad():
             for selected_i in range(expansion_size):
                 nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)

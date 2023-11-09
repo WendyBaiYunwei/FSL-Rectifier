@@ -174,6 +174,10 @@ class FSLTrainer(Trainer):
         #         self.trlog['max_acc_epoch'],
         #         self.trlog['max_acc'],
         #         self.trlog['max_acc_interval']))
+        qry_expansion = args.ary_expansion
+        spt_expansion = args.spt_expansion
+        old_shot = args.eval_shot
+        old_qry = args.eval_qry
         with torch.no_grad():
             for i, batch in enumerate(self.test_loader):
             # for i, batch in tqdm(enumerate(self.test_loader, 1)):
@@ -187,37 +191,34 @@ class FSLTrainer(Trainer):
                 new_data = torch.empty(data.shape).cuda()
                 # print(new_data.shape)
                 # exit()
+                self.args.eval_shot = old_shot
+                self.args.eval_qry = old_qry
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
-                    new_data[img_i] = trainer.model.pick_animals(img, expansion_size=0, random=True)
-                self.args.eval_shot = 1
+                    new_data[img_i] = trainer.model.pick_animals(img, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 
                 acc = count_acc(logits, label)
                 baseline[i-1, 0] = loss.item()
                 baseline[i-1, 1] = acc
-
+                
                 # old data shape: 80, 3, 128, 128
-                expansion = 2
-                self.args.eval_shot = 1 + expansion
-                shot = self.args.eval_shot
-                multi_shot_data = torch.empty(5 * shot + 5 * 15, data.shape[1], data.shape[2], data.shape[3]).\
-                    cuda() # 5 * 2 + 7 * 5 = 10 + 35 = 45
-                k = 0
-                temp = []
-                for img_i in range(len(new_data)):
-                    if img_i < 5:
-                        img = data[img_i].unsqueeze(0)
-                        temp.append(trainer.model.pick_animals(img, \
-                            expansion_size=expansion, random=False, get_img=False, img_id=img_i))
-                    if img_i == 4:
-                        temp = torch.stack(temp).swapaxes(0, 1).flatten(end_dim=1)
-                        multi_shot_data[:(img_i + 1) * shot] = temp
-                    elif img_i >= 5:
-                        multi_shot_data[5 * shot + k] = new_data[img_i]
-                        k += 1
-                logits = self.model(multi_shot_data)
+                self.args.eval_shot = 1 + spt_expansion
+                self.args.eval_qry *= (1 + qry_expansion)
+                # old_spt = torch.empty(5 * shot, data.shape[1], data.shape[2], data.shape[3]).\
+                #     cuda()
+                original_spt = new_data[:5 * old_shot, :, :, :]
+                new_spt = self.get_class_expansion(original_spt[:5], spt_expansion)
+                original_qry = new_data[5 * old_shot:, :, :, :]
+                new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
+                    cuda()
+                for class_chunk_i in range(5*old_shot, len(data), 5):
+                    class_chunk = data[class_chunk_i:class_chunk+5]
+                    new_qries[class_chunk_i] = self.get_class_expansion(class_chunk)
+                new_qries = new_qries.flatten(end_dim=1)
+                expanded_data = torch.stack([original_spt, new_spt, original_qry, new_qries], dim=0)
+                logits = self.model(expanded_data)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
                 new[i-1, 0] = loss.item()
@@ -235,6 +236,18 @@ class FSLTrainer(Trainer):
 
         return vl, va, vap
     
+    # input 01234, return 012340123401234
+    def get_class_expansion(self, data, expansion):
+        expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3])
+        for class_i in range(5):
+            img = data[class_i]
+            class_expansions = self.trainer.model.pick_animals(img, \
+                    expansion_size=expansion, random=False, get_img=False, get_original=False)
+            expanded[class_i] = class_expansions
+        expanded = expanded.swapaxes(0, 1).flatten(end_dim=1)
+        expanded = expanded.reshape(5 * expansion, data.shape[1], data.shape[2], data.shape[3])
+        return expanded
+        
     def final_record(self):
         # save the best performance in a txt file
         
