@@ -1,9 +1,10 @@
 import pickle
 import numpy as np
-from model.FUNIT.utils import loader_from_list
+from model.FUNIT.utils import loader_from_list, get_config, get_augmentations
 from model.trainer.helpers import (
     prepare_model
 )
+from model.FUNIT.trainer import FUNIT_Trainer
 import argparse
 # get 100 randomly sampled animals embeddings
 sample_iters = 2000
@@ -37,6 +38,8 @@ loader = loader_from_list(
     crop=True,
     num_workers=1)
 model, _ = prepare_model(args)
+config = get_config('./picker.yaml')
+trainer = FUNIT_Trainer(config)
 # loaded_dict = torch.load(path)['params']
 # new_params = {}
 # for k in model.state_dict().keys():
@@ -45,6 +48,7 @@ model, _ = prepare_model(args)
 model = model.cuda()
 embeddings = []
 labels = []
+expansion_size = 5
 for i, data in enumerate(loader):
     if i%100 == 0:
         print(i)
@@ -52,9 +56,37 @@ for i, data in enumerate(loader):
     label = data[1].detach().cpu()
     if i >= sample_iters: ## sample_iters
         break
-    embedding = model(img, get_feature=True)
+    reconstructed_img = trainer.model.pick_animals(img, expansion_size=0, random=args.random_picker)
+    embedding = model(reconstructed_img, get_feature=True)
     embeddings.append(embedding.detach().cpu())
     labels.append(label)
+    if label == 0: # get expansion
+        expansion = get_augmentations(img, expansion_size, 'color', get_img=True)
+        embedding = model(expansion, get_feature=True)
+        embeddings.append(embedding.detach().cpu())
+        labels.append(995)
+
+        expansion = get_augmentations(img, expansion_size, 'perspective', get_img=True)
+        embedding = model(expansion, get_feature=True)
+        embeddings.append(embedding.detach().cpu())
+        labels.append(996)
+
+        expansion = get_augmentations(img, expansion_size, 'crop+rotate', get_img=True)
+        embedding = model(expansion, get_feature=True)
+        embeddings.append(embedding.detach().cpu())
+        labels.append(997)
+
+        expansion = trainer.model.pick_animals(img, expansion_size=expansion_size,\
+                                                random=args.random_picker, get_original=False, type = 'mix-up', get_img=True)
+        embedding = model(expansion, get_feature=True)
+        embeddings.append(embedding.detach().cpu())
+        labels.append(998)
+
+        expansion = trainer.model.pick_animals(img, expansion_size=expansion_size,\
+                                                random=args.random_picker, get_original=False, type = 'funit', get_img=True)
+        embedding = model(expansion, get_feature=True)
+        embeddings.append(embedding.detach().cpu())
+        labels.append(999)
 embeddings = np.concatenate(embeddings)
 labels = np.concatenate(labels).reshape(-1, 1)
 # print(labels.shape)

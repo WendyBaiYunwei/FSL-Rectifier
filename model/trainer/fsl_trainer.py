@@ -9,11 +9,11 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.FUNIT.utils import get_train_loaders, get_config
+from model.FUNIT.utils import get_train_loaders, get_config, get_dichomy_loaders
 from model.utils import (
     pprint, ensure_path,
     Averager, Timer, count_acc, one_hot,
-    compute_confidence_interval,
+    compute_confidence_interval, get_augmentations
 )
 # from tensorboardX import SummaryWriter
 from collections import deque
@@ -22,10 +22,11 @@ from tqdm import tqdm
 class FSLTrainer(Trainer):
     def __init__(self, args, config):
         super().__init__(args)
-        loaders = get_train_loaders(config)
+        loaders = get_dichomy_loaders(config)
         self.config = config
-        self.train_loader = loaders[0]
-        self.test_loader = loaders[1]
+        self.train_loader_funit = loaders[0]
+        self.test_loader_funit = loaders[1]
+        self.test_loader_fsl = loaders[2]
         # self.train_loader, self.val_loader, self.test_loader = get_dataloader(args)
         self.model, self.para_model = prepare_model(args)
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
@@ -147,10 +148,10 @@ class FSLTrainer(Trainer):
     def evaluate_test(self):
         # restore model args
         args = self.args
-        config = get_config('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml') ## slack shift to train_fsl
-        config['batch_size'] = args.query + 1
+        # config = get_config('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml') ## slack shift to train_fsl
+        # config['batch_size'] = args.query + 1
         from model.FUNIT.trainer import FUNIT_Trainer
-        trainer = FUNIT_Trainer(config)
+        trainer = FUNIT_Trainer(self.config)
         trainer.cuda()
         trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
         trainer.eval()
@@ -165,7 +166,11 @@ class FSLTrainer(Trainer):
         self.model.load_state_dict(new_params) ## arg path
         self.model.eval()
         baseline = np.zeros((10, 2)) # loss and acc
-        new = np.zeros((10, 2)) # loss and acc
+        oracle = np.zeros((10, 2)) # loss and acc
+        i2name = {0: 'perspective', 1: 'crop+rotate', 2: 'color', 3: 'mix-up', 4: 'funit'}
+        expansion_res = []
+        for i in i2name:
+            expansion_res.append(np.zeros((10, 2))) # loss and acc
         label = torch.arange(args.eval_way, dtype=torch.int16).repeat(args.eval_query)
         label = label.type(torch.LongTensor)
         if torch.cuda.is_available():
@@ -179,19 +184,20 @@ class FSLTrainer(Trainer):
         old_shot = args.eval_shot
         old_qry = args.eval_qry
         with torch.no_grad():
-            for i, batch in enumerate(self.test_loader):
+            for i, batch in enumerate(self.test_loader_fsl):
             # for i, batch in tqdm(enumerate(self.test_loader, 1)):
                 print(i)
                 if i >= 10:
                     break
                 if torch.cuda.is_available():
-                    data, _ = [_.cuda() for _ in batch]
+                    oracle_data, _ = [_.cuda() for _ in batch]
                 else:
-                    data = batch[0]
+                    oracle_data = batch[0]
+                data = oracle_data[(args.eval_shot - 1) * 5:]
                 new_data = torch.empty(data.shape).cuda()
                 # print(new_data.shape)
                 # exit()
-                self.args.eval_shot = old_shot
+                self.args.eval_shot = 1
                 self.args.eval_qry = old_qry
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
@@ -202,47 +208,76 @@ class FSLTrainer(Trainer):
                 acc = count_acc(logits, label)
                 baseline[i-1, 0] = loss.item()
                 baseline[i-1, 1] = acc
+
+                oracle_new_data = torch.empty(oracle_data.shape).cuda()
+                # print(new_data.shape)
+                # exit()
+                self.args.eval_shot = old_shot
+                self.args.eval_qry = old_qry
+                for img_i in range(spt_expansion * 5):
+                    img = oracle_data[img_i].unsqueeze(0)
+                    oracle_new_data[img_i] = trainer.model.pick_animals(img, expansion_size=0, random=args.random_picker)
+                oracle_new_data[spt_expansion * 5:] = new_data
+                logits = self.model(oracle_new_data)
+                loss = F.cross_entropy(logits, label)
+                
+                acc = count_acc(logits, label)
+                oracle[i-1, 0] = loss.item()
+                oracle[i-1, 1] = acc
                 
                 # old data shape: 80, 3, 128, 128
                 self.args.eval_shot = 1 + spt_expansion
                 self.args.eval_qry *= (1 + qry_expansion)
                 # old_spt = torch.empty(5 * shot, data.shape[1], data.shape[2], data.shape[3]).\
                 #     cuda()
-                original_spt = new_data[:5 * old_shot, :, :, :]
-                new_spt = self.get_class_expansion(original_spt[:5], spt_expansion)
-                original_qry = new_data[5 * old_shot:, :, :, :]
-                new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
-                    cuda()
-                for class_chunk_i in range(5*old_shot, len(data), 5):
-                    class_chunk = data[class_chunk_i:class_chunk+5]
-                    new_qries[class_chunk_i] = self.get_class_expansion(class_chunk)
-                new_qries = new_qries.flatten(end_dim=1)
-                expanded_data = torch.stack([original_spt, new_spt, original_qry, new_qries], dim=0)
-                logits = self.model(expanded_data)
-                loss = F.cross_entropy(logits, label)
-                acc = count_acc(logits, label)
-                new[i-1, 0] = loss.item()
-                new[i-1, 1] = acc
+                for type_i, name in i2name:
+                    print(f'getting results for {name}')
+                    original_spt = new_data[:5 * old_shot, :, :, :]
+                    new_spt = self.get_class_expansion(original_spt[:5], spt_expansion, type=name)
+                    original_qry = new_data[5 * old_shot:, :, :, :]
+                    new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
+                        cuda()
+                    for class_chunk_i in range(5*old_shot, len(data), 5):
+                        class_chunk = data[class_chunk_i:class_chunk+5]
+                        new_qries[class_chunk_i] = self.get_class_expansion(class_chunk, qry_expansion, type=name)
+                    new_qries = new_qries.flatten(end_dim=1)
+                    expanded_data = torch.stack([original_spt, new_spt, original_qry, new_qries], dim=0)
+                    logits = self.model(expanded_data)
+                    loss = F.cross_entropy(logits, label)
+                    acc = count_acc(logits, label)
+                    expansion_res[type_i][i-1, 0] = loss.item()
+                    expansion_res[type_i][i-1, 1] = acc
+
         assert(i == baseline.shape[0])
         vl, _ = compute_confidence_interval(baseline[:,0])
         va, vap = compute_confidence_interval(baseline[:,1])
         
         print('Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap))
 
-        vl, _ = compute_confidence_interval(new[:,0])
-        va, vap = compute_confidence_interval(new[:,1])
+        vl, _ = compute_confidence_interval(oracle[:,0])
+        va, vap = compute_confidence_interval(oracle[:,1])
         
-        print('New Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        print('Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        
+        for type_i, name in enumerate(i2name):
+            vl, _ = compute_confidence_interval(expansion_res[type_i][:,0])
+            va, vap = compute_confidence_interval(expansion_res[type_i][:,1])
+            
+            print(f'{name} Test acc={va} + {vap}\n')
 
         return vl, va, vap
     
     # input 01234, return 012340123401234
-    def get_class_expansion(self, data, expansion):
+    # 0: 'oracle', 1: 'mix_up', 2: 'perspective', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
+    def get_class_expansion(self, data, expansion, type='funit'):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3])
         for class_i in range(5):
             img = data[class_i]
-            class_expansions = self.trainer.model.pick_animals(img, \
-                    expansion_size=expansion, random=False, get_img=False, get_original=False)
+            if type == 'funit' or type == 'mix-up':
+                class_expansions = self.trainer.model.pick_animals(img, \
+                        expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
+            else:
+                class_expansions = get_augmentations(img, expansion, type, get_img=False)
             expanded[class_i] = class_expansions
         expanded = expanded.swapaxes(0, 1).flatten(end_dim=1)
         expanded = expanded.reshape(5 * expansion, data.shape[1], data.shape[2], data.shape[3])

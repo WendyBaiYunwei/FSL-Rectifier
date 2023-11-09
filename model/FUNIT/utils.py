@@ -13,6 +13,7 @@ from torchvision import transforms
 import torchvision.utils as vutils
 
 from model.FUNIT.data import ImageLabelFilelist
+import numpy as np
 
 
 def update_average(model_tgt, model_src, beta=0.999):
@@ -97,6 +98,70 @@ def get_evaluation_loaders(conf, shuffle_content=False):
             drop_last=False)
     return content_loader, class_loader
 
+# returns batch_size x num_cls x img_dim 
+def get_dichomy_loader(
+        episodes,
+        root,
+        file_list,
+        batch_size,
+        new_size=None,
+        height=128,
+        width=128,
+        crop=True,
+        num_workers=4,
+        shuffle=True,
+        center_crop=False,
+        return_paths=False,
+        drop_last=True,
+        n_cls=2):
+
+    transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
+            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+
+    transform = transforms.Compose(transform_list)
+    dataset = ImageLabelFilelist(root,
+                                 file_list,
+                                 transform,
+                                 return_paths=return_paths)
+
+    train_sampler = CategoriesSampler(dataset.labels,
+                                    n_batch=episodes,
+                                    n_cls=n_cls,
+                                    n_per=batch_size)
+
+    loader = DataLoader(dataset=dataset,
+                        num_workers=num_workers,
+                        batch_sampler=train_sampler,
+                        pin_memory=True)
+
+    return loader
+
+class CategoriesSampler():
+    def __init__(self, label, n_batch, n_cls, n_per):
+        self.n_batch = n_batch
+        self.n_cls = n_cls
+        self.n_per = n_per
+
+        label = np.array(label)
+        self.m_ind = []
+        for i in range(max(label) + 1):
+            ind = np.argwhere(label == i).reshape(-1)
+            ind = torch.from_numpy(ind)
+            self.m_ind.append(ind)
+
+    def __len__(self):
+        return self.n_batch
+
+    def __iter__(self):
+        for i_batch in range(self.n_batch):
+            batch = []
+            classes = torch.randperm(len(self.m_ind))[:self.n_cls]
+            for c in classes:
+                l = self.m_ind[c]
+                pos = torch.randperm(len(l))[:self.n_per]
+                batch.append(l[pos])
+            batch = torch.stack(batch).t().reshape(-1)
+            yield batch
 
 def get_train_loaders(conf):
     batch_size = conf['batch_size']
@@ -143,6 +208,50 @@ def get_train_loaders(conf):
 
     return (train_content_loader, train_class_loader, test_content_loader,
             test_class_loader)
+
+def get_dichomy_loaders(conf):
+    num_workers = conf['num_workers']
+    new_size = conf['new_size']
+    width = conf['crop_image_width']
+    height = conf['crop_image_height']
+    
+    train_loader = get_dichomy_loader(
+            episodes=conf['max_iter'],
+            root=conf['data_folder_train'],
+            file_list=conf['data_list_train'],
+            batch_size=conf['batch_size'],
+            new_size=new_size,
+            height=height,
+            width=width,
+            crop=True,
+            num_workers=num_workers,
+            n_cls=2)
+
+    test_loader = get_dichomy_loader(
+            episodes=conf['max_iter'],
+            root=conf['data_folder_test'],
+            file_list=conf['data_list_test'],
+            batch_size=conf['batch_size'],
+            new_size=new_size,
+            height=height,
+            width=width,
+            crop=True,
+            num_workers=num_workers,
+            n_cls=2)
+    
+    test_loader_fsl = get_dichomy_loader(
+            episodes=conf['max_iter'],
+            root=conf['data_folder_test'],
+            file_list=conf['data_list_test'],
+            batch_size=conf['eval_shot'] + conf['eval_qry'],
+            new_size=new_size,
+            height=height,
+            width=width,
+            crop=True,
+            num_workers=num_workers,
+            n_cls=conf['way_size'])
+    
+    return train_loader, test_loader, test_loader_fsl
 
 
 def get_config(config):

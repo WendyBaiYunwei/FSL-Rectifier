@@ -5,7 +5,7 @@
 # dataloader options
 max_iter: 101000              # maximum number of training iterations
 log_iter: 1                   # How often do you want to log the training stats
-train_way_size: 5
+way_size: 5
 
 # model options
 gen:

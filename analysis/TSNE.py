@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
 # Load the embeddings and labels from pickle files
 def load_data_from_pickle(embeddings_file, labels_file):
@@ -18,34 +17,8 @@ def perform_tsne(embeddings, perplexity=30, n_iter=1000, random_state=42):
     embeddings_2d = tsne.fit_transform(embeddings)
     return embeddings_2d
 
-# Plot the t-SNE results with colors based on labels and a green cross for the centroid of a chosen class
-def plot_tsne_with_labels_and_centroid(embeddings_2d, labels, chosen_class):
-    unique_labels = np.unique(labels)
-    num_classes = len(unique_labels)
-
-    # Create a color map with distinct colors for each class
-    colors = plt.cm.viridis(np.linspace(0, 1, num_classes))
-
-    # class_color_mapping = {label: color for label, color in zip(unique_labels, colors)}
-
-    # # Assign colors to each point based on their labels
-    # point_colors = [class_color_mapping[label] for label in labels]
-
-    plt.figure(figsize=(8, 8))
-    for i in range(num_classes):
-        indices = labels == unique_labels[i]
-        plt.scatter(embeddings_2d[indices, 0], embeddings_2d[indices, 1], label=f'Class {unique_labels[i]}', c=[colors[i]], s=30)
-
-    # Calculate the centroid of the chosen class
-    chosen_class_indices = labels == chosen_class
-    centroid = np.mean(embeddings_2d[chosen_class_indices], axis=0)
-    plt.scatter(centroid[0], centroid[1], c='green', marker='x', s=100, label=f'Centroid of Class {chosen_class}')
-
-    plt.title("t-SNE Visualization with Class Colors and Centroid Marked")
-    plt.legend()
-    plt.savefig('tsne.pdf')
-
 if __name__ == "__main__":
+    aug_size = 5
     # Specify the paths to the pickle files containing embeddings and labels
     embeddings_pickle_path = "embeddings.pkl"
     labels_pickle_path = "embeddings_labels.pkl"
@@ -53,11 +26,42 @@ if __name__ == "__main__":
     # Load embeddings and labels from the pickle files
     embeddings, labels = load_data_from_pickle(embeddings_pickle_path, labels_pickle_path)
 
-    # Specify the chosen class for marking its centroid
-    chosen_class = 0  # Replace with the desired class label
-
     # Perform t-SNE on the embeddings
-    embeddings_2d = perform_tsne(embeddings)
+    postns = perform_tsne(embeddings)
+    
+    # Calculate the centroid of the chosen class
+    chosen_class = 0
+    chosen_class_indices = labels == chosen_class
+    class_embs = postns[chosen_class_indices]
+    centroid = np.mean(class_embs, axis=0)
+    
 
+    # utlity defi
     # Plot the t-SNE results with colors based on labels and a green cross for the centroid of the chosen class
-    plot_tsne_with_labels_and_centroid(embeddings_2d, labels, chosen_class)
+    aug_types = ['color', 'perspective', 'crop+rotate', 'mix-up', 'funit']
+    auglength = len(aug_types) * aug_size
+    random_pt_x, random_pt_y = postns[0]
+    standard = [True for _ in range(len(postns))]
+    standard[-auglength:] = False
+    unique_labels = np.unique(labels)
+    num_classes = len(unique_labels)
+    colors = plt.cm.viridis(np.linspace(0, 1, num_classes))
+
+    for type_i, type in enumerate(aug_types):
+        valid = standard.copy()
+        valid[-aug_size * (len(aug_types) - type_i):] = True
+        cur_postns = postns[valid]
+        plt.subplot(1, type_i, 1)
+        for i in range(num_classes):
+            indices = labels == unique_labels[i]
+            plt.scatter(cur_postns[indices, 0], cur_postns[indices, 1], label=f'Class {unique_labels[i]}', c=[colors[i]], s=30)
+        plt.scatter(random_pt_x, random_pt_y, c='blue', marker='o', s=100, label=f'A Random Image in {chosen_class}')
+        plt.scatter(centroid[0], centroid[1], c='green', marker='x', s=100, label=f'Centroid of Class {chosen_class}')
+    expansions = postns[valid]
+    expansion_mean = np.mean(expansions, dim=0)
+    x = np.array([centroid[0], expansion_mean[0]])
+    y = np.array([centroid[1], expansion_mean[1]])
+    plt.plot(x, y, marker='o', linestyle='-')
+    plt.title("t-SNE Cluster with Centroids")
+    plt.legend()
+    plt.savefig('tsne.pdf')

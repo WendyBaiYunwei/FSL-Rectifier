@@ -5,6 +5,8 @@ import pprint
 import torch
 import argparse
 import numpy as np
+from torchvision import transforms
+import torch.nn.functional as F
 
 def one_hot(indices, depth):
     """
@@ -185,3 +187,38 @@ def get_command_line_parser():
     parser.add_argument('--spt_expansion', type=int, default=0)
     
     return parser
+
+# {0: 'perspective', 1: 'crop+rotate', 2: 'color'}
+def get_augmentations(img, expansion, type, get_img):
+    expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
+    crop_rotate = transforms.Compose([
+        transforms.RandomRotation(degrees=(0, 180)),
+        transforms.RandomCrop(size=(128, 128))
+    ])
+    transformations = {
+        'perspective': transforms.RandomPerspective(distortion_scale=0.6, p=1.0),
+        'crop+rotate': crop_rotate,
+        'color': transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
+    }
+    for expansion_i in range(expansion):
+        augmented_image = transformations[type](img)
+        expansions[expansion_i] = augmented_image
+        if get_img == True:
+            image = F.to_pil_image(augmented_image)
+            image.save(f'augmented_image_{expansion_i}.jpg')
+    return expansions
+
+
+def reorganize_data(data):
+    img = data[0]
+    series = torch.arange(data[0].shape[0])
+    idx1 = series % 2 == 0
+    idx2 = series % 2 == 1
+    co_img = img[idx1, :, :, :]
+    cl_img = img[idx2, :, :, :]
+    labels = data[1]
+    co_y = labels[idx1]
+    cl_y = labels[idx2]
+    co_data = (co_img, co_y)
+    cl_data = (cl_img, cl_y)
+    return co_data, cl_data

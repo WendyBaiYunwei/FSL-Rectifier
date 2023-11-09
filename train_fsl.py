@@ -12,10 +12,10 @@ if __name__ == '__main__':
     parser = get_command_line_parser()
     args = postprocess_args(parser.parse_args())
     # with launch_ipdb_on_exception():
-    config = get_config('./FEAT.yaml')
-    config['max_iter'] = args.max_epoch * args.episodes_per_epoch
-    config['train_way_size'] = args.way
-    config['batch_size'] = args.query + 1
+    config = get_config('./picker.yaml')
+    assert config['max_iter'] == args.max_epoch * args.episodes_per_epoch
+    assert config['way_size'] == args.way
+    assert config['batch_size'] == args.eval_query + args.eval_shot
     pprint(vars(args))
 
     from model.trainer.fsl_trainer import FSLTrainer

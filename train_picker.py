@@ -5,7 +5,7 @@ import argparse
 import shutil
 
 from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, reorganize_data
-from model.FUNIT.utils import write_loss, write_html, write_1images, Timer
+from model.FUNIT.utils import write_loss, write_html, write_1images, Timer, get_dichomy_loaders
 from model.FUNIT.trainer import FUNIT_Trainer
 
 import torch.backends.cudnn as cudnn
@@ -49,9 +49,8 @@ if opts.multigpus:
 else:
     config['gpus'] = 1
 
-loaders = get_train_loaders(config)
-train_content_loader = loaders[0]
-train_class_loader = loaders[1]
+loaders = get_dichomy_loaders(config)
+train_loader = loaders[0]
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
@@ -66,9 +65,9 @@ iterations = trainer.resume(checkpoint_directory,
                             multigpus=opts.multigpus) # compulsory resume
 
 while True:
-    for it, (co_data, cl_data) in enumerate(
-            zip(train_content_loader, train_class_loader)):
-        # data (batch, 3, 3, 128, 128)
+    for it, data in enumerate(train_loader):
+        # data (batch, way, 3, 128, 128)
+        co_data, cl_data = reorganize_data(data)
         with Timer("Elapsed time in update: %f"):
             loss = trainer.picker_update(co_data, cl_data, config)
             # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
