@@ -229,3 +229,13 @@ class Timer:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         print(self.msg % (time.time() - self.start_time))
+
+def kl_divergence(p, q):
+    # Ensure that p and q are both probability distributions (i.e., they sum to 1)
+    p = torch.nn.functional.softmax(p, dim=1)
+    q = torch.nn.functional.softmax(q, dim=1)
+    
+    # Compute KL divergence
+    kl = torch.sum(p * (torch.log(p) - torch.log(q)))
+    
+    return kl

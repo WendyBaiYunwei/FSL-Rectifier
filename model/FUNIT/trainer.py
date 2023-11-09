@@ -71,9 +71,9 @@ class FUNIT_Trainer(nn.Module):
         self.dis_opt.step()
         return self.accuracy_dis_adv.item()
 
-    def picker_update(self, co_data, cl_data, cn_data, hp):
+    def picker_update(self, co_data, cl_data, hp):
         self.picker_opt.zero_grad()
-        loss = self.model(co_data, cl_data, cn_data, hp, 'picker_update')
+        loss = self.model(co_data, cl_data, hp, 'picker_update')
         self.picker_opt.step()
         return loss.item()
     
@@ -98,7 +98,7 @@ class FUNIT_Trainer(nn.Module):
         self.dis_opt.load_state_dict(state_dict['dis'])
         self.gen_opt.load_state_dict(state_dict['gen'])
 
-        iterations = 0
+        iterations = 10000
         self.dis_scheduler = get_scheduler(self.dis_opt, hp, iterations)
         self.gen_scheduler = get_scheduler(self.gen_opt, hp, iterations)
         print('Resume from iteration %d' % iterations)

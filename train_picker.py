@@ -1,19 +1,12 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
 import torch
 import os
 import sys
 import argparse
 import shutil
 
-# from tensorboardX import SummaryWriter
-
-from utils import get_config, get_train_loaders, make_result_folders, reorganize_data
-from utils import write_loss, write_html, write_1images, Timer
-from trainer import FUNIT_Trainer
+from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, reorganize_data
+from model.FUNIT.utils import write_loss, write_html, write_1images, Timer
+from model.FUNIT.trainer import FUNIT_Trainer
 
 import torch.backends.cudnn as cudnn
 # Enable auto-tuner to find the best algorithm to use for your hardware.
@@ -22,7 +15,7 @@ cudnn.benchmark = True
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='configs/funit_selector.yaml',
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -57,7 +50,8 @@ else:
     config['gpus'] = 1
 
 loaders = get_train_loaders(config)
-train_loader = loaders[0]
+train_content_loader = loaders[0]
+train_class_loader = loaders[1]
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
@@ -72,11 +66,11 @@ iterations = trainer.resume(checkpoint_directory,
                             multigpus=opts.multigpus) # compulsory resume
 
 while True:
-    for it, data in enumerate(train_loader):
+    for it, (co_data, cl_data) in enumerate(
+            zip(train_content_loader, train_class_loader)):
         # data (batch, 3, 3, 128, 128)
-        co_data, cl_data, cn_data = reorganize_data(data)
         with Timer("Elapsed time in update: %f"):
-            loss = trainer.picker_update(co_data, cl_data, cn_data, config)
+            loss = trainer.picker_update(co_data, cl_data, config)
             # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
             #                            opts.multigpus)
             torch.cuda.synchronize()
@@ -87,6 +81,8 @@ while True:
             # write_loss(iterations, trainer, train_writer)
 
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
+            print('change checkpoint dir', checkpoint_directory)
+            exit()
             trainer.save(checkpoint_directory, iterations, opts.multigpus)
             print('Saved model at iteration %d' % (iterations + 1))
 

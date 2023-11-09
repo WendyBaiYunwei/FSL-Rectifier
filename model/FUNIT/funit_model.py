@@ -66,6 +66,18 @@ class FUNITModel(nn.Module):
             l_total = l_fake + l_real + l_reg
             acc = 0.5 * (acc_f + acc_r)
             return l_total, l_fake_p, l_real_pre, l_reg_pre, acc
+        elif mode == 'picker_update':
+            qry_features = self.gen.enc_content(cl_data) # batch, q, feature_size
+            nb_features = self.gen.enc_content(co_data) # qries and nbs are of different classes
+            matrix_forward = torch.bmm(qry_features, nb_features.transpose(2,1)) # q qries, n neighbors
+            matrix_reverse = torch.bmm(nb_features, qry_features.transpose(2,1))
+            scores_forward = self.get_score(qry = cl_data, nb = co_data)
+            scores_reverse = self.get_score(qry = co_data, nb = cl_data)
+            loss_forward = recon_criterion(matrix_forward, scores_forward)
+            loss_reverse = recon_criterion(matrix_reverse, scores_reverse)
+            loss = loss_forward + loss_reverse
+            loss.backward()
+            return loss
         else:
             assert 0, 'Not support operation'
 
@@ -124,13 +136,13 @@ class FUNITModel(nn.Module):
         xt_current = self.gen_test.decode(c_xa_current, s_xb_current)
         return xt_current
 
-    def get_score(self, qry, nb, cn_data):
+    def get_score(self, qry, nb):
         with torch.no_grad():
             c_xa = self.gen.enc_content(nb.detach())
             # s_xa = self.gen.enc_class_model(xa)
             s_xb = self.gen.enc_class_model(qry.detach())
             translation = self.gen.decode(c_xa, s_xb)
-        real_degree = self.dis(translation, qry, nb, cn_data, selector=True)# how real the generation appears
+            real_degree = self.dis.get_quality(qry, translation)# how real the generation appears
         # and is the generation similar to the right class?
         return real_degree
     

@@ -10,6 +10,7 @@ from torch import nn
 from torch import autograd
 
 from model.FUNIT.blocks import LinearBlock, Conv2dBlock, ResBlocks, ActFirstResBlock
+from model.FUNIT.utils import kl_divergence 
 
 
 def assign_adain_params(adain_params, model):
@@ -107,7 +108,14 @@ class GPPatchMcResDis(nn.Module):
         reg = grad_dout2.sum()/batch_size
         return reg
 
-
+    def get_quality(self, qry, translation):
+        qry_logits = self.cnn_c(self.cnn_f(qry))
+        translation_logits = self.cnn_c(self.cnn_f(translation))
+        quality = kl_divergence(qry_logits, translation_logits)
+        print('quality shape in networks', quality.shape)
+        exit()
+        return quality
+    
 class FewShotGen(nn.Module):
     def __init__(self, hp):
         super(FewShotGen, self).__init__()

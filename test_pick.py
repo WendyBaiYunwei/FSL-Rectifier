@@ -20,7 +20,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='configs/picker.yaml')
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml')
 parser.add_argument('--ckpt',
                     type=str,
                     default='pretrained/animal119_gen_00100000.pt')
