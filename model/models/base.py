@@ -33,22 +33,35 @@ class FewShotModel(nn.Module):
             return  (torch.Tensor(np.arange(args.eval_way*args.eval_shot)).long().view(1, args.eval_shot, args.eval_way), 
                      torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way * (args.eval_shot + args.eval_query))).long().view(1, args.eval_query, args.eval_way))
 
-    def forward(self, x, get_feature=False):
+    def forward(self, x, get_feature=False, qry_expansion=0):
         if get_feature:
             # get feature with the provided embeddings
             return self.encoder(x)
         else:
             # feature extraction
             x = x.squeeze(0)
-            instance_embs = self.encoder(x)
-            num_inst = instance_embs.shape[0]
+            instance_embs = self.encoder(x)           #len, emb
             # split support query set for few-shot data
             support_idx, query_idx = self.split_instances(x)
+            if qry_expansion > 0:
+                args = self.args
+                spt_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot)).long()
+                qry_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way *\
+                                     (args.eval_shot + args.eval_query * (qry_expansion + 1)))).long()
+                real_query_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way *\
+                                     (args.eval_shot + args.eval_query))).long()
+                new_embs = torch.empty(instance_embs.shape).cuda()
+                new_embs[spt_idx] = instance_embs[spt_idx]
+                new_embs[real_query_idx] = instance_embs[qry_idx].reshape(1 + qry_expansion, 5, -1).mean(dim=0)
+                real_length = len(spt_idx) + len(real_query_idx)
+                new_embs = new_embs[:real_length, :]
+            else:
+                new_embs = instance_embs
             if self.training:
-                logits, logits_reg = self._forward(instance_embs, support_idx, query_idx)
+                logits, logits_reg = self._forward(new_embs, support_idx, query_idx)
                 return logits, logits_reg
             else:
-                logits = self._forward(instance_embs, support_idx, query_idx)
+                logits = self._forward(new_embs, support_idx, query_idx)
                 return logits
 
     def _forward(self, x, support_idx, query_idx):

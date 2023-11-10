@@ -256,7 +256,7 @@ def get_dichomy_loaders(conf):
             episodes=conf['max_iter'],
             root=conf['data_folder_test'],
             file_list=conf['data_list_test'],
-            batch_size=conf['eval_shot'] + conf['eval_qry'],
+            batch_size=conf['eval_shot'] + conf['eval_query'],
             new_size=new_size,
             height=height,
             width=width,

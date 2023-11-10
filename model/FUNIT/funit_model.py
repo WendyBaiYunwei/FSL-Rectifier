@@ -187,11 +187,11 @@ class FUNITModel(nn.Module):
         if get_img == False:
             return torch.stack(translations).squeeze()
     
-    def pick_animals(self, qry, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    def pick_animals(self, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
         if expansion_size == 0:
             get_original = True
         # pool size should be <= class numbers ##slack
-        candidate_neighbours = next(iter(self.train_loader_funit)) # from train sampler, size: pool_size, 3, h, w + label_size
+        candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
         with torch.no_grad():
             qry_features = self.gen.enc_content(qry).mean((2,3)) # batch=1, feature_size
@@ -216,7 +216,8 @@ class FUNITModel(nn.Module):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
             if type == 'funit':
                 translation = self.translate_simple(nb, class_code)
-            elif type == 'mix-up':
+            elif type == 'mix-up' or type == 'random-mix-up':
+                nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
                 translation = 0.5 * (nb + qry)
             translations.append(translation)
 

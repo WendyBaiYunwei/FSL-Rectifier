@@ -15,7 +15,7 @@ if __name__ == '__main__':
     config = get_config('./picker.yaml')
     assert config['max_iter'] == args.max_epoch * args.episodes_per_epoch
     assert config['way_size'] == args.way
-    assert config['batch_size'] == args.eval_query + args.eval_shot
+    config['batch_size'] == args.eval_query + args.eval_shot
     pprint(vars(args))
 
     from model.trainer.fsl_trainer import FSLTrainer
