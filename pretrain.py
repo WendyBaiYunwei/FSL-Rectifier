@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--max_epoch', type=int, default=100) # 40 for resnet, 10 for convnet
-    parser.add_argument('--lr', type=float, default=0.01) # 0.1 for resnet, 0.01 for convnet
+    parser.add_argument('--lr', type=float, default=0.005) # 0.1 for resnet, 0.01 for convnet
     parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
     parser.add_argument('--dataset', type=str, default='Animals', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    
     parser.add_argument('--backbone_class', type=str, default='Translator', choices=['ConvNet', 'Res12', 'Translator'])
@@ -164,7 +164,7 @@ if __name__ == '__main__':
             optimizer.step()
 
         if epoch % 10 == 0:
-            save_model('zzzzlast')
+            save_model(f'pretrain_{args.dataset}')
             save_checkpoint(True)
 
             # # do not do validation in first 500 epoches

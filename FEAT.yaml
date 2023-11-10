@@ -34,3 +34,4 @@ data_list_test: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datas
 
 # test options:
 pool_size: 10
+dataset: 'Animals'

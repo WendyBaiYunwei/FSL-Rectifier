@@ -267,6 +267,25 @@ def get_dichomy_loaders(conf):
     
     return train_loader, test_loader, test_loader_fsl
 
+def get_pretrain_loaders(conf):
+    batch_size = conf['batch_size']
+    num_workers = conf['num_workers']
+    new_size = conf['new_size']
+    width = conf['crop_image_width']
+    height = conf['crop_image_height']
+
+    train_loader = loader_from_list(
+            root=conf['data_folder_train'],
+            file_list=conf['data_list_train'],
+            batch_size=batch_size,
+            new_size=new_size,
+            height=height,
+            width=width,
+            crop=True,
+            shuffle=True,
+            num_workers=num_workers)
+
+    return train_loader
 
 def get_config(config):
     with open(config, 'r') as stream:
