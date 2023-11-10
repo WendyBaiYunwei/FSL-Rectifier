@@ -109,11 +109,12 @@ class GPPatchMcResDis(nn.Module):
         return reg
 
     def get_quality(self, qry, translation):
-        qry_logits = self.cnn_c(self.cnn_f(qry))
-        translation_logits = self.cnn_c(self.cnn_f(translation))
+        
+        qry_logits = self.cnn_c(self.cnn_f(qry)).mean((2,3))
+        translation_logits = self.cnn_c(self.cnn_f(translation)).mean((2,3))
         quality = kl_divergence(qry_logits, translation_logits)
-        print('quality shape in networks', quality.shape)
-        exit()
+        # print('quality in networks', quality)
+        # exit()
         return quality
     
 class FewShotGen(nn.Module):
@@ -228,11 +229,11 @@ class ContentEncoder(nn.Module):
                                  pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
         self.output_dim = dim
-        state_dict = torch.load('/home/nus/Documents/research/augment/code/FEAT/Traffic-Translator-Pre/0.05_0.1_[75, 150, 300]/checkpoint.pth')['state_dict']
-        new_dict = {}
-        for k in self.model.state_dict().keys():
-            new_dict[k] = state_dict['encoder.model.' + k]
-        self.model.load_state_dict(new_dict)
+        # state_dict = torch.load('/home/nus/Documents/research/augment/code/FEAT/Traffic-Translator-Pre/0.05_0.1_[75, 150, 300]/checkpoint.pth')['state_dict']
+        # new_dict = {}
+        # for k in self.model.state_dict().keys():
+        #     new_dict[k] = state_dict['encoder.model.' + k]
+        # self.model.load_state_dict(new_dict)
         # for params in self.model.parameters():
         #     params.requires_grad = False
 

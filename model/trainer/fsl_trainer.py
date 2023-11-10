@@ -168,6 +168,11 @@ class FSLTrainer(Trainer):
         trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
         trainer.eval()
         self.trainer = trainer
+        picker = FUNIT_Trainer(self.config)
+        picker.cuda()
+        picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100499.pt')
+        picker.eval()
+        self.picker = picker
         # evaluation mode
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
         # path = '/home/nus/Documents/research/augment/code/FEAT/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/last.pth'
@@ -217,7 +222,7 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
-                    new_data[img_i] = trainer.model.pick_animals(img,\
+                    new_data[img_i] = picker.model.pick_animals(img,\
                                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
@@ -233,7 +238,7 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(spt_expansion * 5):
                     img = oracle_data[img_i].unsqueeze(0)
-                    oracle_new_data[img_i] = trainer.model.pick_animals(img,\
+                    oracle_new_data[img_i] = picker.model.pick_animals(img,\
                                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
                 oracle_new_data[spt_expansion * 5:] = new_data
                 logits = self.model(oracle_new_data)
@@ -307,10 +312,10 @@ class FSLTrainer(Trainer):
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
-                class_expansions = self.trainer.model.pick_animals(img, self.train_loader_funit, \
+                class_expansions = self.picker.model.pick_animals(img, self.train_loader_funit, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
             elif type == 'random-mix-up':
-                class_expansions = self.trainer.model.pick_animals(img, self.train_loader_funit, \
+                class_expansions = self.picker.model.pick_animals(img, self.train_loader_funit, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)

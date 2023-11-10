@@ -4,7 +4,8 @@ import sys
 import argparse
 import shutil
 
-from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, reorganize_data
+from model.utils import reorganize_data
+from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders
 from model.FUNIT.utils import write_loss, write_html, write_1images, Timer, get_dichomy_loaders
 from model.FUNIT.trainer import FUNIT_Trainer
 
@@ -15,7 +16,7 @@ cudnn.benchmark = True
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml',
+                    default='/home/nus/Documents/research/augment/code/FEAT/picker.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -49,8 +50,9 @@ if opts.multigpus:
 else:
     config['gpus'] = 1
 
-loaders = get_dichomy_loaders(config)
+loaders = get_train_loaders(config)
 train_loader = loaders[0]
+test_loader = loaders[2]
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
@@ -65,9 +67,9 @@ iterations = trainer.resume(checkpoint_directory,
                             multigpus=opts.multigpus) # compulsory resume
 
 while True:
-    for it, data in enumerate(train_loader):
+    for it, (co_data, cl_data) in enumerate(zip(train_loader, test_loader)):
         # data (batch, way, 3, 128, 128)
-        co_data, cl_data = reorganize_data(data)
+        # co_data, cl_data = reorganize_data(data)
         with Timer("Elapsed time in update: %f"):
             loss = trainer.picker_update(co_data, cl_data, config)
             # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
@@ -81,7 +83,6 @@ while True:
 
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
             print('change checkpoint dir', checkpoint_directory)
-            exit()
             trainer.save(checkpoint_directory, iterations, opts.multigpus)
             print('Saved model at iteration %d' % (iterations + 1))
 
