@@ -187,7 +187,8 @@ class FSLTrainer(Trainer):
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'perspective' , 4: 'crop+rotate', 5: 'random-mix-up'}
+        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'perspective' , 4: 'crop+rotate', 5: 'random-mix-up'}
+        i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'perspective' , 4: 'crop+rotate'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
