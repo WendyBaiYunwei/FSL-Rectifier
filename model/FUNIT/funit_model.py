@@ -67,15 +67,16 @@ class FUNITModel(nn.Module):
             acc = 0.5 * (acc_f + acc_r)
             return l_total, l_fake_p, l_real_pre, l_reg_pre, acc
         elif mode == 'picker_update':
-            qry_features = self.gen.enc_content(cl_data) # batch, q, feature_size
-            nb_features = self.gen.enc_content(co_data) # qries and nbs are of different classes
-            matrix_forward = torch.bmm(qry_features, nb_features.transpose(2,1)) # q qries, n neighbors
-            matrix_reverse = torch.bmm(nb_features, qry_features.transpose(2,1))
-            scores_forward = self.get_score(qry = cl_data, nb = co_data)
-            scores_reverse = self.get_score(qry = co_data, nb = cl_data)
-            loss_forward = recon_criterion(matrix_forward, scores_forward)
+            qry_features = self.gen.enc_content(xb).mean((2,3)) # batch, q, feature_size
+            nb_features = self.gen.enc_content(xa).mean((2,3)) # qries and nbs are of different classes
+            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0)) # q qries, n neighbors
+            matrix_reverse = torch.mm(nb_features, qry_features.transpose(0,1))
+            scores_forward = self.get_score(qry = xb, nb = xa)
+            scores_reverse = self.get_score(qry = xa, nb = xb)
+            loss_forward = recon_criterion(matrix_forward, scores_forward) # the matrix represents kl divergence
             loss_reverse = recon_criterion(matrix_reverse, scores_reverse)
-            loss = loss_forward + loss_reverse
+            loss = loss_forward + loss_reverse * 0.5
+            loss *= 0.01
             loss.backward()
             return loss
         else:
@@ -142,9 +143,9 @@ class FUNITModel(nn.Module):
             # s_xa = self.gen.enc_class_model(xa)
             s_xb = self.gen.enc_class_model(qry.detach())
             translation = self.gen.decode(c_xa, s_xb)
-            real_degree = self.dis.get_quality(qry, translation)# how real the generation appears
+            fake_degree = self.dis.get_quality(qry, translation)# how real the generation appears
         # and is the generation similar to the right class?
-        return real_degree
+        return fake_degree
     
     # optionally returns qry expansions of size: (expansion_size + 1, 3, h, w)
     # 'pool_size' copies of candidate neighbours are randomly sampled
@@ -199,7 +200,7 @@ class FUNITModel(nn.Module):
             nb_features_trans = nb_features.transpose(1,0)
             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
         if random == False:
-            scores, idxs = torch.sort(scores, descending=True) # more similar in front
+            scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
             idxs = idxs.long()
             selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
             selected_nbs = selected_nbs[:expansion_size, :, :, :]

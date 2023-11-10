@@ -3,13 +3,13 @@
 # (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
 # logger options
-image_save_iter: 1         # How often do you want to save output images during training 2500
-image_display_iter: 1       # How often do you want to display output images during training 10000
-snapshot_save_iter: 1      # How often do you want to save trained models 2500
+image_save_iter: 2500         # How often do you want to save output images during training 2500
+image_display_iter: 10000       # How often do you want to display output images during training 10000
+snapshot_save_iter: 500      # How often do you want to save trained models 2500
 log_iter: 1                   # How often do you want to log the training stats
 
 # optimization options
-max_iter: 10001              # maximum number of training iterations 110000
+max_iter: 101000              # maximum number of training iterations 110000
 weight_decay: 0.0001          # weight decay
 lr_gen: 0.0001                # learning rate for the generator
 lr_dis: 0.0001                # learning rate for the discriminator
@@ -33,12 +33,12 @@ dis:
   num_classes: 119            # number of classes in the training set
 
 # data options
-eval_shot: 1
+eval_shot: 2
 eval_query: 1
 pool_size: 10
 way_size: 5
 num_workers: 4
-batch_size: 3
+batch_size: 32
 new_size: 140                 # first resize the shortest image side to this size
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width

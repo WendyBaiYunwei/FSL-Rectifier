@@ -97,9 +97,9 @@ class FUNIT_Trainer(nn.Module):
         # state_dict = torch.load(last_model_name)
         # this_model.dis.load_state_dict(state_dict['dis'])
 
-        state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
-        self.dis_opt.load_state_dict(state_dict['dis'])
-        self.gen_opt.load_state_dict(state_dict['gen'])
+        # state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
+        # self.dis_opt.load_state_dict(state_dict['dis'])
+        # self.gen_opt.load_state_dict(state_dict['gen'])
 
         iterations = 100000
         self.dis_scheduler = get_scheduler(self.dis_opt, hp, iterations)

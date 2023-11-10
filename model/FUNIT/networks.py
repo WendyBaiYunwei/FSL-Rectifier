@@ -109,11 +109,12 @@ class GPPatchMcResDis(nn.Module):
         return reg
 
     def get_quality(self, qry, translation):
-        qry_logits = self.cnn_c(self.cnn_f(qry))
-        translation_logits = self.cnn_c(self.cnn_f(translation))
+        
+        qry_logits = self.cnn_c(self.cnn_f(qry)).mean((2,3))
+        translation_logits = self.cnn_c(self.cnn_f(translation)).mean((2,3))
         quality = kl_divergence(qry_logits, translation_logits)
-        print('quality shape in networks', quality.shape)
-        exit()
+        # print('quality in networks', quality)
+        # exit()
         return quality
     
 class FewShotGen(nn.Module):

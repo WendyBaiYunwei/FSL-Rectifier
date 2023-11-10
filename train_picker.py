@@ -50,8 +50,9 @@ if opts.multigpus:
 else:
     config['gpus'] = 1
 
-loaders = get_dichomy_loaders(config)
+loaders = get_train_loaders(config)
 train_loader = loaders[0]
+test_loader = loaders[2]
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
@@ -66,9 +67,9 @@ iterations = trainer.resume(checkpoint_directory,
                             multigpus=opts.multigpus) # compulsory resume
 
 while True:
-    for it, data in enumerate(train_loader):
+    for it, (co_data, cl_data) in enumerate(zip(train_loader, test_loader)):
         # data (batch, way, 3, 128, 128)
-        co_data, cl_data = reorganize_data(data)
+        # co_data, cl_data = reorganize_data(data)
         with Timer("Elapsed time in update: %f"):
             loss = trainer.picker_update(co_data, cl_data, config)
             # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
