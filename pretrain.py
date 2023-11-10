@@ -16,11 +16,11 @@ from model.FUNIT.utils import get_pretrain_loaders, get_config
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--max_epoch', type=int, default=50) # 40 for resnet, 10 for convnet
-    parser.add_argument('--lr', type=float, default=0.05) # 0.1 for resnet, 0.01 for convnet
+    parser.add_argument('--max_epoch', type=int, default=100) # 40 for resnet, 10 for convnet
+    parser.add_argument('--lr', type=float, default=0.01) # 0.1 for resnet, 0.01 for convnet
     parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
-    parser.add_argument('--dataset', type=str, default='Traffic', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    
-    parser.add_argument('--backbone_class', type=str, default='Res12', choices=['ConvNet', 'Res12', 'Translator'])
+    parser.add_argument('--dataset', type=str, default='Animals', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    
+    parser.add_argument('--backbone_class', type=str, default='Translator', choices=['ConvNet', 'Res12', 'Translator'])
     parser.add_argument('--schedule', type=int, nargs='+', default=[75, 150, 300], help='Decrease learning rate at these epochs.')
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--query', type=int, default=15)    

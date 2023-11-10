@@ -37,7 +37,8 @@ def loader_from_list(
         shuffle=True,
         center_crop=False,
         return_paths=False,
-        drop_last=True):
+        drop_last=True,
+        dataset='Animals'):
     transform_list = [transforms.ToTensor(),
                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     if center_crop:
@@ -51,10 +52,12 @@ def loader_from_list(
     if not center_crop:
         transform_list = [transforms.RandomHorizontalFlip()] + transform_list
     transform = transforms.Compose(transform_list)
+
     dataset = ImageLabelFilelist(root,
-                                 file_list,
-                                 transform,
-                                 return_paths=return_paths)
+                                file_list,
+                                transform,
+                                dataset=dataset,
+                                return_paths=return_paths)
     loader = DataLoader(dataset,
                         batch_size,
                         shuffle=shuffle,
@@ -81,7 +84,8 @@ def get_evaluation_loaders(conf, shuffle_content=False):
             shuffle=shuffle_content,
             center_crop=True,
             return_paths=True,
-            drop_last=False)
+            drop_last=False,
+            dataset=conf['dataset'])
 
     class_loader = loader_from_list(
             root=conf['data_folder_test'],
@@ -95,7 +99,8 @@ def get_evaluation_loaders(conf, shuffle_content=False):
             shuffle=False,
             center_crop=True,
             return_paths=True,
-            drop_last=False)
+            drop_last=False,
+            dataset=conf['dataset'])
     return content_loader, class_loader
 
 # returns batch_size x num_cls x img_dim 
@@ -113,7 +118,8 @@ def get_dichomy_loader(
         center_crop=False,
         return_paths=False,
         drop_last=True,
-        n_cls=2):
+        n_cls=2,
+        dataset='Animals'):
 
     transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
             transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -122,7 +128,8 @@ def get_dichomy_loader(
     dataset = ImageLabelFilelist(root,
                                  file_list,
                                  transform,
-                                 return_paths=return_paths)
+                                 return_paths=return_paths,
+                                 dataset=dataset)
 
     train_sampler = CategoriesSampler(dataset.labels,
                                     n_batch=episodes,
@@ -177,7 +184,8 @@ def get_train_loaders(conf):
             height=height,
             width=width,
             crop=True,
-            num_workers=num_workers)
+            num_workers=num_workers,
+            dataset=conf['dataset'])
     train_class_loader = loader_from_list(
             root=conf['data_folder_train'],
             file_list=conf['data_list_train'],
@@ -186,7 +194,8 @@ def get_train_loaders(conf):
             height=height,
             width=width,
             crop=True,
-            num_workers=num_workers)
+            num_workers=num_workers,
+            dataset=conf['dataset'])
     test_content_loader = loader_from_list(
             root=conf['data_folder_test'],
             file_list=conf['data_list_test'],
@@ -195,7 +204,8 @@ def get_train_loaders(conf):
             height=height,
             width=width,
             crop=True,
-            num_workers=1)
+            num_workers=1,
+            dataset=conf['dataset'])
     test_class_loader = loader_from_list(
             root=conf['data_folder_test'],
             file_list=conf['data_list_test'],
@@ -204,7 +214,8 @@ def get_train_loaders(conf):
             height=height,
             width=width,
             crop=True,
-            num_workers=1)
+            num_workers=1,
+            dataset=conf['dataset'])
 
     return (train_content_loader, train_class_loader, test_content_loader,
             test_class_loader)
@@ -225,7 +236,8 @@ def get_dichomy_loaders(conf):
             width=width,
             crop=True,
             num_workers=num_workers,
-            n_cls=2)
+            n_cls=2,
+            dataset=conf['dataset'])
 
     test_loader = get_dichomy_loader(
             episodes=conf['max_iter'],
@@ -237,7 +249,8 @@ def get_dichomy_loaders(conf):
             width=width,
             crop=True,
             num_workers=num_workers,
-            n_cls=2)
+            n_cls=2,
+            dataset=conf['dataset'])
     
     test_loader_fsl = get_dichomy_loader(
             episodes=conf['max_iter'],
@@ -249,7 +262,8 @@ def get_dichomy_loaders(conf):
             width=width,
             crop=True,
             num_workers=num_workers,
-            n_cls=conf['way_size'])
+            n_cls=conf['way_size'],
+            dataset=conf['dataset'])
     
     return train_loader, test_loader, test_loader_fsl
 

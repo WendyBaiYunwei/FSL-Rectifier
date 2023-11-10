@@ -11,8 +11,10 @@ import numpy as np
 
 
 def default_loader(path):
-    # image = Image.open(path).convert('RGB')
-    # return image ##slack
+    image = Image.open(path).convert('RGB')
+    return image ##slack
+
+def transform_loader(path):
     image = io.imread(path)
     image = exposure.equalize_adapthist(image, clip_limit=0.1)
     image = (image * 255).astype(np.uint8)
@@ -36,11 +38,17 @@ class ImageLabelFilelist(data.Dataset):
                  transform=None,
                  filelist_reader=default_filelist_reader,
                  loader=default_loader,
+                 dataset='Animals',
                  return_paths=False):
         self.root = root
         self.im_list = filelist_reader(os.path.join(filelist))
         self.transform = transform
-        self.loader = loader
+        if dataset == 'Animals':
+            self.loader = loader
+        elif dataset == 'Traffic':
+            self.loader = transform_loader
+        else:
+            'dataset not found'
         labels = [path.split('/')[0] for path in self.im_list]
         self.classes = sorted(list(set(labels)))
         self.class_to_idx = {self.classes[i]: i for i in

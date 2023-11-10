@@ -11,28 +11,41 @@ import torch
 import torch.backends.cudnn as cudnn
 from torchvision import transforms
 
-from utils import get_config
-from trainer import FUNIT_Trainer
+from model.FUNIT.utils import get_config
+from model.FUNIT.trainer import FUNIT_Trainer
 
 import argparse
 
+from skimage import exposure, io
+
+def default_loader(path):
+    # image = Image.open(path).convert('RGB')
+    # return image ##slack
+    image = io.imread(path)
+    image = exposure.equalize_adapthist(image, clip_limit=0.1)
+    image = (image * 255).astype(np.uint8)
+    image = Image.fromarray(image)
+    return image
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='configs/picker.yaml')
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/funit_traffic_signs.yaml')
 parser.add_argument('--ckpt',
                     type=str,
-                    default='pretrained/animal119_gen_00100000.pt')
+                    default="/home/nus/Documents/research/augment/code/FEAT/outputs/funit_traffic_signs/checkpoints/gen_99999.pt")
+                    # default='pretrained/animal119_gen_00100000.pt')
 parser.add_argument('--class_image_folder',
                     type=str,
-                    default='images/n02138411')
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/traffics/class_styles')
 parser.add_argument('--input',
                     type=str,
-                    default='images/input_content.jpg')
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/traffics/input_content.jpg')
+                    # default='images/input_content.jpg')
 parser.add_argument('--output',
                     type=str,
-                    default='images/output.jpg')
+                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/traffics/output.jpg')
+                    # default='images/output.jpg')
 opts = parser.parse_args()
 cudnn.benchmark = True
 opts.vis = True
@@ -54,7 +67,8 @@ print('Compute average class codes for images in %s' % opts.class_image_folder)
 images = os.listdir(opts.class_image_folder)
 for i, f in enumerate(images):
     fn = os.path.join(opts.class_image_folder, f)
-    img = Image.open(fn).convert('RGB')
+    # img = Image.open(fn).convert('RGB')
+    img = default_loader(fn)
     img_tensor = transform(img).unsqueeze(0).cuda()
     with torch.no_grad():
         class_code = trainer.model.compute_k_style(img_tensor, 1)
@@ -63,8 +77,10 @@ for i, f in enumerate(images):
         else:
             new_class_code += class_code
 final_class_code = new_class_code / len(images)
-image = Image.open(opts.input)
-image = image.convert('RGB')
+# image = Image.open(opts.input)
+# image = image.convert('RGB')
+image = default_loader(opts.input)
+image.save('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/traffics/initial_out.jpg', 'JPEG', quality=99)
 content_img = transform(image).unsqueeze(0)
 
 print('Compute translation for %s' % opts.input)
