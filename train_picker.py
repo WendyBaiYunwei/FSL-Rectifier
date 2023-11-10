@@ -4,7 +4,8 @@ import sys
 import argparse
 import shutil
 
-from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, reorganize_data
+from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders
+from model.utils import reorganize_data
 from model.FUNIT.utils import write_loss, write_html, write_1images, Timer, get_dichomy_loaders
 from model.FUNIT.trainer import FUNIT_Trainer
 
@@ -15,7 +16,7 @@ cudnn.benchmark = True
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml',
+                    default='/home/yunwei/new/FSL-Rectifier/picker.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -81,7 +82,6 @@ while True:
 
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
             print('change checkpoint dir', checkpoint_directory)
-            exit()
             trainer.save(checkpoint_directory, iterations, opts.multigpus)
             print('Saved model at iteration %d' % (iterations + 1))
 

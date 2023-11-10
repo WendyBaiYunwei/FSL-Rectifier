@@ -228,11 +228,11 @@ class ContentEncoder(nn.Module):
                                  pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
         self.output_dim = dim
-        state_dict = torch.load('/home/nus/Documents/research/augment/code/FEAT/Traffic-Translator-Pre/0.05_0.1_[75, 150, 300]/checkpoint.pth')['state_dict']
-        new_dict = {}
-        for k in self.model.state_dict().keys():
-            new_dict[k] = state_dict['encoder.model.' + k]
-        self.model.load_state_dict(new_dict)
+        # state_dict = torch.load('/home/nus/Documents/research/augment/code/FEAT/Traffic-Translator-Pre/0.05_0.1_[75, 150, 300]/checkpoint.pth')['state_dict']
+        # new_dict = {}
+        # for k in self.model.state_dict().keys():
+        #     new_dict[k] = state_dict['encoder.model.' + k]
+        # self.model.load_state_dict(new_dict)
         # for params in self.model.parameters():
         #     params.requires_grad = False
 

@@ -85,16 +85,17 @@ class FUNIT_Trainer(nn.Module):
         this_model = self.model.module if multigpus else self.model
         
         # last_model_name = get_model_list(checkpoint_dir, "gen")
-        last_model_name = './outputs/funit_traffic_signs/checkpoints/gen_99999.pt'
+        last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/animals/checkpoints/animal119_gen_00100000.pt'
+        print(f'loading {last_model_name}')
         state_dict = torch.load(last_model_name)
         this_model.gen.load_state_dict(state_dict['gen'])
         this_model.gen_test.load_state_dict(state_dict['gen_test'])
         # iterations = int(last_model_name[-11:-3])
 
         # last_model_name = get_model_list(checkpoint_dir, "dis")
-        last_model_name = './outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
-        state_dict = torch.load(last_model_name)
-        this_model.dis.load_state_dict(state_dict['dis'])
+        # last_model_name = './outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
+        # state_dict = torch.load(last_model_name)
+        # this_model.dis.load_state_dict(state_dict['dis'])
 
         state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
         self.dis_opt.load_state_dict(state_dict['dis'])

@@ -3,13 +3,13 @@
 # (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
 # logger options
-image_save_iter: 2500         # How often do you want to save output images during training
-image_display_iter: 100       # How often do you want to display output images during training
-snapshot_save_iter: 5000      # How often do you want to save trained models
+image_save_iter: 1         # How often do you want to save output images during training 2500
+image_display_iter: 1       # How often do you want to display output images during training 10000
+snapshot_save_iter: 1      # How often do you want to save trained models 2500
 log_iter: 1                   # How often do you want to log the training stats
 
 # optimization options
-max_iter: 1000              # maximum number of training iterations
+max_iter: 10001              # maximum number of training iterations 110000
 weight_decay: 0.0001          # weight decay
 lr_gen: 0.0001                # learning rate for the generator
 lr_dis: 0.0001                # learning rate for the discriminator
@@ -42,8 +42,8 @@ batch_size: 3
 new_size: 140                 # first resize the shortest image side to this size
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
-data_folder_train: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals
-data_list_train: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals_list_train.txt
-data_folder_test: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals
-data_list_test: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals_list_test.txt
+data_folder_train: /mnt/hdd/yw/animals
+data_list_train: /mnt/hdd/yw/animals/animals_list_train.txt
+data_folder_test: /mnt/hdd/yw/animals
+data_list_test: /mnt/hdd/yw/animals/animals_list_test.txt
 dataset: 'Animals'
