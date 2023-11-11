@@ -16,11 +16,11 @@ from model.FUNIT.utils import get_pretrain_loaders, get_config
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--max_epoch', type=int, default=100) # 40 for resnet, 10 for convnet
-    parser.add_argument('--lr', type=float, default=0.005) # 0.1 for resnet, 0.01 for convnet
+    parser.add_argument('--max_epoch', type=int, default=1) # 40 for resnet, 10 for convnet
+    parser.add_argument('--lr', type=float, default=0.01) # 0.1 for resnet, 0.01 for convnet
     parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
-    parser.add_argument('--dataset', type=str, default='Animals', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    
-    parser.add_argument('--backbone_class', type=str, default='Translator', choices=['ConvNet', 'Res12', 'Translator'])
+    parser.add_argument('--dataset', type=str, default='Traffic', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    
+    parser.add_argument('--backbone_class', type=str, default='ConvNet', choices=['ConvNet', 'Res12', 'Translator'])
     parser.add_argument('--schedule', type=int, nargs='+', default=[75, 150, 300], help='Decrease learning rate at these epochs.')
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--query', type=int, default=15)    
@@ -88,8 +88,8 @@ if __name__ == '__main__':
         if args.ngpu  > 1:
             model.encoder = torch.nn.DataParallel(model.encoder, device_ids=list(range(args.ngpu)))
         
-        model = model.cuda()
-        criterion = criterion.cuda()
+        model = model.cuda(1)
+        criterion = criterion.cuda(1)
     
     def save_model(name):
         torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     for epoch in range(1, args.max_epoch + 1):
         for i, batch in enumerate(train_loader):
             if torch.cuda.is_available():
-                data, label = [_.cuda() for _ in batch]
+                data, label = [_.cuda(1) for _ in batch]
                 label = label.type(torch.cuda.LongTensor)
             else:
                 data, label = batch
@@ -163,7 +163,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             save_model(f'pretrain_{args.dataset}')
             save_checkpoint(True)
 
@@ -185,7 +185,7 @@ if __name__ == '__main__':
             #     with torch.no_grad():
             #         for i, batch in tqdm(enumerate(val_loader, 1)):
             #             if torch.cuda.is_available():
-            #                 data, _ = [_.cuda() for _ in batch]
+            #                 data, _ = [_.cuda(1) for _ in batch]
             #             else:
             #                 data, _ = batch
             #             data_shot, data_query = data[:valset.num_class], data[valset.num_class:] # 16-way test

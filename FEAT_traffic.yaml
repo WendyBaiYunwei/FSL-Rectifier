@@ -23,16 +23,16 @@ dis:
   
 # data options
 num_workers: 4
-batch_size: 64
+batch_size: 128
 new_size: 140                 # first resize the shortest image side to this size
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
-data_folder_train: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs
-data_list_train: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs_list_train_round.txt
-data_folder_test: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs
-data_list_test: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs_list_test.txt
-data_train_classes: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs_train_class_names_round.txt
-data_test_classes: /home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/traffic_signs_test_class_names.txt
+data_folder_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
+data_list_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_train_round.txt
+data_folder_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
+data_list_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_test.txt
+data_train_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_train_class_names_round.txt
+data_test_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_test_class_names.txt
 
 # test options:
 pool_size: 10

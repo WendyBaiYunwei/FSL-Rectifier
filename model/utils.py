@@ -143,7 +143,7 @@ def get_command_line_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=1)
     parser.add_argument('--episodes_per_epoch', type=int, default=500)
-    parser.add_argument('--num_eval_episodes', type=int, default=100)
+    parser.add_argument('--num_eval_episodes', type=int, default=50)
     parser.add_argument('--model_class', type=str, default='ProtoNet', 
                         choices=['MatchNet', 'ProtoNet', 'BILSTM', 'DeepSet', 'GCN', 'FEAT', 'FEATSTAR', 'SemiFEAT', 'SemiProtoFEAT']) # None for MatchNet or ProtoNet
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
@@ -183,7 +183,7 @@ def get_command_line_parser():
     parser.add_argument('--eval_interval', type=int, default=1)
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--random_picker', action='store_true', default=True)
-    parser.add_argument('--qry_expansion', type=int, default=1)
+    parser.add_argument('--qry_expansion', type=int, default=0)
     parser.add_argument('--spt_expansion', type=int, default=1)
     
     return parser

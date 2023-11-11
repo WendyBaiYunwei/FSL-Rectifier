@@ -152,7 +152,7 @@ class FUNITModel(nn.Module):
     # translations are conducted only with the best 'expansion_size' candidates
     # best candidates are defined as those with the highest vector dot product
     # the vectors are features learnt by picker
-    def pick_traffic(self, qry, expansion_size=0, get_img = False, random=False): # only one qry
+    def pick_traffic(self, qry, expansion_size=0, get_img=False, random=False): # only one qry
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(self.train_loader)) # from train sampler, size: pool_size, 3, h, w
         candidate_neighbours = candidate_neighbours[0].cuda()

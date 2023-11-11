@@ -283,7 +283,8 @@ def get_pretrain_loaders(conf):
             width=width,
             crop=True,
             shuffle=True,
-            num_workers=num_workers)
+            num_workers=num_workers,
+            dataset=conf['dataset'])
 
     return train_loader
 

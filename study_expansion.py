@@ -16,7 +16,7 @@ parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--max_epoch', type=int, default=40) # 40 for resnet, 10 for convnet
 parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
-parser.add_argument('--dataset', type=str, default='Animals', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals"])    
+parser.add_argument('--dataset', type=str, default='Traffic', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", "Traffic"])    
 parser.add_argument('--backbone_class', type=str, default='ConvNet', choices=['ConvNet', 'Res12'])
 parser.add_argument('--schedule', type=int, nargs='+', default=[75, 150, 300], help='Decrease learning rate at these epochs.')
 parser.add_argument('--gamma', type=float, default=0.1)
@@ -28,9 +28,13 @@ args = parser.parse_args()
 # get loader
 # get the embeddings in numpy
 # store the embeddings
+if args.dataset == 'Traffic':
+    config = get_config('./picker_traffic.yaml')
+else:
+    config = get_config('./picker.yaml')
 loader = loader_from_list(
-    root='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals',
-    file_list='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals_list_test.txt',
+    root=config['data_folder_test'],
+    file_list=config['data_list_test'],
     batch_size=1,
     new_size=140,
     height=128,
@@ -39,8 +43,6 @@ loader = loader_from_list(
     num_workers=1,
     shuffle=True,
     dataset=args.dataset)
-
-config = get_config('./picker.yaml')
 
 train_loader = loader_from_list(
     root=config['data_folder_train'],
@@ -56,12 +58,18 @@ train_loader = loader_from_list(
 
 trainer = FUNIT_Trainer(config)
 trainer.cuda()
-trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
+if args.dataset == 'Animals':
+    trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
+else:
+    trainer.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
 trainer.eval()
 
 picker = FUNIT_Trainer(config)
 picker.cuda()
-picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100999.pt')
+if args.dataset == 'Animals':
+    picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100999.pt')
+else:
+    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
 picker.eval()
 picker = picker.model.gen
 
@@ -74,6 +82,6 @@ for i, data in enumerate(loader):
 
     expansions = trainer.model.pick_animals(picker, img, train_loader,\
              expansion_size=5, get_img = True, random=False, img_id='', get_original=True, type='funit')
-    write_1images(expansions, './analysis', postfix=f'expansions_{i}')
+    write_1images(expansions, './analysis', postfix=f'{args.dataset}_expansions_{i}')
     if i == 2:
         exit()

@@ -28,7 +28,7 @@ class FSLTrainer(Trainer):
         self.test_loader_funit = loaders[1]
         self.test_loader_fsl = loaders[2]
 
-        conf = get_config('/home/yunwei/new/FSL-Rectifier/picker.yaml') ## slack shift
+        conf = get_config('/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml') ## slack shift
         self.train_loader_funit = loader_from_list(
             root=conf['data_folder_train'],
             file_list=conf['data_list_train'],
@@ -165,20 +165,20 @@ class FSLTrainer(Trainer):
         from model.FUNIT.trainer import FUNIT_Trainer
         trainer = FUNIT_Trainer(self.config)
         trainer.cuda()
-        trainer.load_ckpt('animal_pretrained.pt')
+        trainer.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
         trainer.eval()
         self.trainer = trainer
         picker = FUNIT_Trainer(self.config)
         picker.cuda()
-        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
         picker.eval()
         picker = picker.model.gen
         self.picker = picker
         # evaluation mode
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
-        path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+        path = '/home/yunwei/new/FSL-Rectifier/Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(path)['state_dict']
+        loaded_dict = torch.load(path, map_location=torch.device('cuda:0'))['state_dict']
         new_params = {}
         keys = list(loaded_dict.keys())
         for key_i, k in enumerate(self.model.state_dict().keys()):
@@ -190,10 +190,10 @@ class FSLTrainer(Trainer):
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-mix-up'}
+        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-funit'}
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'funit'}
+        i2name = {0: 'mix-up'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -228,8 +228,9 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
-                    new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                    new_data[img_i] = img
+                    # new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                    #              self.train_loader_funit, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 
@@ -263,9 +264,9 @@ class FSLTrainer(Trainer):
                     name = i2name[type_i]
                     # print(f'getting results for {name}')
                     # expand support 
-                    original_spt = new_data[:5, :, :, :]
-                    reconstructed_spt = data[:5, :, :, :]
-                    new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
+                    reconstructed_spt = new_data[:5, :, :, :]
+                    original_spt = data[:5, :, :, :]
+                    new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
 
                     # expand queries
                     original_qry = new_data[5:, :, :, :]
@@ -285,7 +286,7 @@ class FSLTrainer(Trainer):
                     assert k == old_qry
                     new_qries = new_qries.flatten(end_dim=1)
 
-                    expanded_data = torch.cat([original_spt, new_spt, original_qry, new_qries], dim=0)
+                    expanded_data = torch.cat([reconstructed_spt, new_spt, original_qry, new_qries], dim=0)
                     logits = self.model(expanded_data, qry_expansion=qry_expansion)
                     loss = F.cross_entropy(logits, label)
                     acc = count_acc(logits, label)
