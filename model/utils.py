@@ -188,8 +188,8 @@ def get_command_line_parser():
     
     return parser
 
-# {0: 'affine', 1: 'crop+rotate', 2: 'color'}
-def get_augmentations(img, expansion, type, get_img):
+# {0: 'perspective', 1: 'crop+rotate', 2: 'color'}
+def get_augmentations(img, expansion, type, get_img=False):
     expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
     crop_rotate = transforms.Compose([
         transforms.RandomRotation(degrees=(0, 180)),
