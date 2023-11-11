@@ -236,7 +236,10 @@ class FUNITModel(nn.Module):
         #         output_img.save(\
         #             f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
         #         print('Save output')
-        return torch.stack(translations).squeeze()
+        if get_img == True:
+            return translations
+        else:
+            return torch.stack(translations).squeeze()
 
     # returns the best / worst nb + translation
     def study_picker(self, picker, qry, picker_loader, mode='best'):

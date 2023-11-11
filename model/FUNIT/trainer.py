@@ -28,6 +28,7 @@ class FUNIT_Trainer(nn.Module):
     def __init__(self, cfg):
         super(FUNIT_Trainer, self).__init__()
         self.model = FUNITModel(cfg)
+        self.cfg = cfg
         lr_gen = cfg['lr_gen']
         lr_dis = cfg['lr_dis']
         dis_params = list(self.model.dis.parameters())
@@ -85,17 +86,26 @@ class FUNIT_Trainer(nn.Module):
         this_model = self.model.module if multigpus else self.model
         
         # last_model_name = get_model_list(checkpoint_dir, "gen")
-        last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/animals/checkpoints/animal119_gen_00100000.pt'
-        print(f'loading {last_model_name}')
+        # last_model_name = '/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt'
+        if self.cfg['dataset'] == 'Animals':
+            last_model_name = '/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100499.pt'
+        elif self.cfg['dataset'] == 'Traffic':
+            last_model_name = '/home/nus/Documents/research/augment/code/FEAT/outputs/funit_traffic_signs/checkpoints/gen_99999.pt'
+        else:
+            print('unknown dataset for resume')
+            exit()
+        print(f'loaded {last_model_name}')
         state_dict = torch.load(last_model_name)
         this_model.gen.load_state_dict(state_dict['gen'])
         this_model.gen_test.load_state_dict(state_dict['gen_test'])
         # iterations = int(last_model_name[-11:-3])
 
         # last_model_name = get_model_list(checkpoint_dir, "dis")
-        # last_model_name = './outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
-        # state_dict = torch.load(last_model_name)
-        # this_model.dis.load_state_dict(state_dict['dis'])
+        if self.cfg['dataset'] == 'Traffic':
+            # last_model_name = './outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
+            last_model_name = '/home/nus/Documents/research/augment/code/FEAT/outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
+            state_dict = torch.load(last_model_name)
+            this_model.dis.load_state_dict(state_dict['dis'])
 
         # state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
         # self.dis_opt.load_state_dict(state_dict['dis'])

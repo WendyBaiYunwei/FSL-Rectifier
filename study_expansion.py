@@ -72,8 +72,8 @@ for i, data in enumerate(loader):
     img = data[0].cuda()
     label = data[1].detach().cpu()
 
-    for mode in ['best', 'worst']:
-        qry, translation, nb = trainer.model.study_picker(picker, img, train_loader, mode)
-        write_1images((qry, nb, translation), './analysis', postfix=f'{mode}_{i}')
-    if i == 10:
+    expansions = trainer.model.pick_animals(picker, img, train_loader,\
+             expansion_size=5, get_img = True, random=False, img_id='', get_original=True, type='funit')
+    write_1images(expansions, './analysis', postfix=f'expansions_{i}')
+    if i == 2:
         exit()

@@ -58,7 +58,13 @@ test_loader = loaders[2]
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
 # train_writer = SummaryWriter(
 #     os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+if config['dataset'] == 'Traffic':
+    output_directory = os.path.join(opts.output_path + "/outputs/funit_traffic_signs", model_name)
+elif config['dataset'] == 'Animals':
+    output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+else:
+    print('unknown dataset in yaml')
+    exit()
 checkpoint_directory, image_directory = make_result_folders(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml'))
 
