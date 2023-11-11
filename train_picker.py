@@ -62,6 +62,8 @@ if config['dataset'] == 'Traffic':
     output_directory = os.path.join(opts.output_path + "/outputs/funit_traffic_signs", model_name)
 elif config['dataset'] == 'Animals':
     output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+    print(output_directory)
+    exit()
 else:
     print('unknown dataset in yaml')
     exit()

@@ -11,8 +11,8 @@ import torch
 from model.models.classifier import Classifier
 
 # get 100 randomly sampled animals embeddings
-sample_iters = 50 * 10
-path = '/home/nus/Documents/research/augment/code/FEAT/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/last.pth'
+sample_iters = 200 * 10
+path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--max_epoch', type=int, default=40) # 40 for resnet, 10 for convnet
@@ -31,9 +31,10 @@ args = parser.parse_args()
 # get loader
 # get the embeddings in numpy
 # store the embeddings
+config = get_config('./picker.yaml')
 loader = loader_from_list(
-    root='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals',
-    file_list='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals_list_test.txt',
+    root=config['data_folder_test'],
+    file_list=config['data_list_test'],
     batch_size=1,
     new_size=140,
     height=128,
@@ -41,8 +42,6 @@ loader = loader_from_list(
     crop=True,
     num_workers=1,
     dataset=args.dataset)
-
-config = get_config('./picker.yaml')
 
 train_loader = loader_from_list(
     root=config['data_folder_train'],
@@ -56,7 +55,7 @@ train_loader = loader_from_list(
     dataset=config['dataset'])
 args.num_class = 119
 model = Classifier(args)
-loaded_dict = torch.load(path)['params']
+loaded_dict = torch.load(path)['state_dict']
 new_params = {}
 for k in model.state_dict().keys():
     # if 'encoder' in k:
@@ -66,18 +65,19 @@ model.load_state_dict(new_params) ## arg path
 
 trainer = FUNIT_Trainer(config)
 trainer.cuda()
-trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
+trainer.load_ckpt('/home/yunwei/new/FSL-Rectifier/animal_pretrained.pt')
 trainer.eval()
 
 picker = FUNIT_Trainer(config)
 picker.cuda()
-picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100999.pt')
+picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+picker = picker.model.gen
 picker.eval()
 
 model = model.cuda()
 embeddings = []
 labels = []
-expansion_size = 5
+expansion_size = 10
 need_expansion = True
 for i, data in enumerate(loader):
     if i%100 == 0:
@@ -91,7 +91,7 @@ for i, data in enumerate(loader):
     label = label[keep_idx]
     if i >= sample_iters: ## sample_iters
         break
-    reconstructed_img = trainer.model.pick_animals(img, train_loader, expansion_size=0)
+    reconstructed_img = trainer.model.pick_animals(picker, img, train_loader, expansion_size=0)
     embedding = model(reconstructed_img.unsqueeze(0), is_emb=True)
     embeddings.append(embedding.detach().cpu())
     labels.append(label)
@@ -114,14 +114,14 @@ for i, data in enumerate(loader):
         labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
 
-        expansion = picker.model.pick_animals(img, train_loader, expansion_size=expansion_size,\
+        expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
                                                 random=False, get_original=False, type = 'mix-up')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
         label = torch.full(label.shape, 998)
         labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
-        expansion = picker.model.pick_animals(img, train_loader, expansion_size=expansion_size,\
+        expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
                                                 random=False, get_original=False, type = 'funit')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())

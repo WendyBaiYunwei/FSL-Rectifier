@@ -44,9 +44,9 @@ loader = loader_from_list(
     shuffle=True,
     dataset=args.dataset)
 
-train_loader = loader_from_list(
-    root=config['data_folder_train'],
-    file_list=config['data_list_train'],
+test_loader = loader_from_list(
+    root=config['data_folder_test'],
+    file_list=config['data_list_test'],
     batch_size=config['pool_size'],
     new_size=140,
     height=128,
@@ -69,7 +69,7 @@ picker.cuda()
 if args.dataset == 'Animals':
     picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100999.pt')
 else:
-    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
+    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
 picker.eval()
 picker = picker.model.gen
 
@@ -80,7 +80,7 @@ for i, data in enumerate(loader):
     img = data[0].cuda()
     label = data[1].detach().cpu()
 
-    expansions = trainer.model.pick_animals(picker, img, train_loader,\
+    expansions = trainer.model.pick_traffic(picker, img, test_loader,\
              expansion_size=5, get_img = True, random=False, img_id='', get_original=True, type='funit')
     write_1images(expansions, './analysis', postfix=f'{args.dataset}_expansions_{i}')
     if i == 2:
