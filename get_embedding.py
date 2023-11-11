@@ -67,7 +67,7 @@ for i, data in enumerate(loader):
         embeddings.append(embedding.detach().cpu())
         labels.append(995)
 
-        expansion = get_augmentations(img, expansion_size, 'perspective', get_img=True)
+        expansion = get_augmentations(img, expansion_size, 'affine', get_img=True)
         embedding = model(expansion, get_feature=True)
         embeddings.append(embedding.detach().cpu())
         labels.append(996)

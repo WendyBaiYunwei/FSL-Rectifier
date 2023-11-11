@@ -142,12 +142,12 @@ def postprocess_args(args):
 def get_command_line_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=1)
-    parser.add_argument('--episodes_per_epoch', type=int, default=1000)
-    parser.add_argument('--num_eval_episodes', type=int, default=20)
+    parser.add_argument('--episodes_per_epoch', type=int, default=500)
+    parser.add_argument('--num_eval_episodes', type=int, default=100)
     parser.add_argument('--model_class', type=str, default='ProtoNet', 
                         choices=['MatchNet', 'ProtoNet', 'BILSTM', 'DeepSet', 'GCN', 'FEAT', 'FEATSTAR', 'SemiFEAT', 'SemiProtoFEAT']) # None for MatchNet or ProtoNet
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
-    parser.add_argument('--backbone_class', type=str, default='Res12',
+    parser.add_argument('--backbone_class', type=str, default='ConvNet',
                         choices=['ConvNet', 'Res12', 'Res18', 'WRN'])
     parser.add_argument('--dataset', type=str, default='Animals',
                         choices=['MiniImageNet', 'TieredImageNet', 'CUB', 'Animals'])
@@ -172,7 +172,7 @@ def get_command_line_parser():
     parser.add_argument('--fix_BN', action='store_true', default=False)     # means we do not update the running mean/var in BN, not to freeze BN
     parser.add_argument('--augment',   action='store_true', default=False)
     parser.add_argument('--multi_gpu', action='store_true', default=False)
-    parser.add_argument('--gpu', default='0')
+    parser.add_argument('--gpu', default='1')
     parser.add_argument('--init_weights', type=str, default=None)
     
     # usually untouched parameters
@@ -183,12 +183,12 @@ def get_command_line_parser():
     parser.add_argument('--eval_interval', type=int, default=1)
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--random_picker', action='store_true', default=True)
-    parser.add_argument('--qry_expansion', type=int, default=0)
+    parser.add_argument('--qry_expansion', type=int, default=1)
     parser.add_argument('--spt_expansion', type=int, default=1)
     
     return parser
 
-# {0: 'perspective', 1: 'crop+rotate', 2: 'color'}
+# {0: 'affine', 1: 'crop+rotate', 2: 'color'}
 def get_augmentations(img, expansion, type, get_img):
     expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
     crop_rotate = transforms.Compose([
@@ -196,7 +196,7 @@ def get_augmentations(img, expansion, type, get_img):
         transforms.RandomCrop(size=(128, 128))
     ])
     transformations = {
-        'perspective': transforms.RandomPerspective(distortion_scale=0.6, p=1.0),
+        'affine': transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75)),
         'crop+rotate': crop_rotate,
         'color': transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
     }

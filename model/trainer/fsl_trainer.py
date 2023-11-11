@@ -28,7 +28,7 @@ class FSLTrainer(Trainer):
         self.test_loader_funit = loaders[1]
         self.test_loader_fsl = loaders[2]
 
-        conf = get_config('/home/nus/Documents/research/augment/code/FEAT/picker.yaml') ## slack shift
+        conf = get_config('/home/yunwei/new/FSL-Rectifier/picker.yaml') ## slack shift
         self.train_loader_funit = loader_from_list(
             root=conf['data_folder_train'],
             file_list=conf['data_list_train'],
@@ -165,30 +165,34 @@ class FSLTrainer(Trainer):
         from model.FUNIT.trainer import FUNIT_Trainer
         trainer = FUNIT_Trainer(self.config)
         trainer.cuda()
-        trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
+        trainer.load_ckpt('animal_pretrained.pt')
         trainer.eval()
         self.trainer = trainer
         picker = FUNIT_Trainer(self.config)
         picker.cuda()
-        picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100499.pt')
+        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
         picker.eval()
+        picker = picker.model.gen
         self.picker = picker
         # evaluation mode
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
-        # path = '/home/nus/Documents/research/augment/code/FEAT/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/last.pth'
-        path = '/home/nus/Documents/research/augment/code/FEAT/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/last.pth'
-        loaded_dict = torch.load(path)['params']
+        path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+        # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
+        loaded_dict = torch.load(path)['state_dict']
         new_params = {}
-        for k in self.model.state_dict().keys():
+        keys = list(loaded_dict.keys())
+        for key_i, k in enumerate(self.model.state_dict().keys()):
             # if 'encoder' in k:
             #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
-            new_params[k] = loaded_dict[k]
+            new_params[k] = loaded_dict[keys[key_i]]
+        assert key_i == len(keys) - 3
         self.model.load_state_dict(new_params) ## arg path
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'perspective' , 4: 'crop+rotate', 5: 'random-mix-up'}
-        i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'perspective' , 4: 'crop+rotate'}
+        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-mix-up'}
+        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
+        i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -223,7 +227,7 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
-                    new_data[img_i] = picker.model.pick_animals(img,\
+                    new_data[img_i] = trainer.model.pick_animals(img, picker,\
                                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
@@ -239,7 +243,7 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(spt_expansion * 5):
                     img = oracle_data[img_i].unsqueeze(0)
-                    oracle_new_data[img_i] = picker.model.pick_animals(img,\
+                    oracle_new_data[img_i] = trainer.model.pick_animals(img, picker,\
                                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
                 oracle_new_data[spt_expansion * 5:] = new_data
                 logits = self.model(oracle_new_data)
@@ -259,22 +263,22 @@ class FSLTrainer(Trainer):
                     # print(f'getting results for {name}')
                     # expand support 
                     original_spt = new_data[:5, :, :, :]
-                    new_spt = self.get_class_expansion(original_spt, spt_expansion, type=name)
+                    new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
 
                     # expand queries
                     original_qry = new_data[5:, :, :, :]
                     new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
                         cuda()
                     k = 0
-                    if name in ['funit', 'mix-up', 'random-mix-up']: # use original data
+                    if name in ['funit', 'random-funit', 'mix-up', 'random-mix-up']: # use original data
                         for class_chunk_i in range(5, len(data), 5):
                             class_chunk = data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(class_chunk, qry_expansion, type=name)
+                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
                     else:# use restructured data
                         for class_chunk_i in range(5, len(new_data), 5):
                             class_chunk = new_data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(class_chunk, qry_expansion, type=name)
+                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
                     assert k == old_qry
                     new_qries = new_qries.flatten(end_dim=1)
@@ -307,16 +311,16 @@ class FSLTrainer(Trainer):
         return vl, va, vap
     
     # input 01234, return 012340123401234
-    # 0: 'oracle', 1: 'mix_up', 2: 'perspective', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
-    def get_class_expansion(self, data, expansion, type='funit'):
+    # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
+    def get_class_expansion(self, picker, data, expansion, type='funit'):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3]).cuda()
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
-                class_expansions = self.picker.model.pick_animals(img, self.train_loader_funit, \
+                class_expansions = self.trainer.model.pick_animals(img, picker, self.train_loader_funit, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
-            elif type == 'random-mix-up':
-                class_expansions = self.picker.model.pick_animals(img, self.train_loader_funit, \
+            elif type == 'random-mix-up' or type == 'random-funit':
+                class_expansions = self.trainer.model.pick_animals(img, picker, self.train_loader_funit, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)

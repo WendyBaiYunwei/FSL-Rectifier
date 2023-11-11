@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # utlity defi
     # Plot the t-SNE results with colors based on labels and a green cross for the centroid of the chosen class
-    aug_types = ['color', 'perspective', 'crop+rotate', 'mix-up', 'funit']
+    aug_types = ['color', 'affine', 'crop+rotate', 'mix-up', 'funit']
     auglength = len(aug_types) * aug_size
     random_pt_x, random_pt_y = postns[0]
     standard = [True for _ in range(len(postns))]

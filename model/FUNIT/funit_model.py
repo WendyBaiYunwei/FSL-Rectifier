@@ -188,15 +188,15 @@ class FUNITModel(nn.Module):
         if get_img == False:
             return torch.stack(translations).squeeze()
     
-    def pick_animals(self, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    def pick_animals(self, qry, picker, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
         if expansion_size == 0:
             get_original = True
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
         with torch.no_grad():
-            qry_features = self.gen.enc_content(qry).mean((2,3)) # batch=1, feature_size
-            nb_features = self.gen.enc_content(candidate_neighbours).mean((2,3))
+            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
             nb_features_trans = nb_features.transpose(1,0)
             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
         if random == False:
@@ -207,33 +207,34 @@ class FUNITModel(nn.Module):
         else:
             selected_nbs = candidate_neighbours[:expansion_size, :, :, :]
         class_code = self.compute_k_style(qry, 1)
+        qry = self.translate_simple(qry, class_code)
         if get_original == True:
-            translations = [self.translate_simple(qry, class_code)]
+            translations = [qry]
         else:
             translations = []
         
         
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
-            if type == 'funit':
+            if type == 'funit' or type == 'random-funit':
                 translation = self.translate_simple(nb, class_code)
             elif type == 'mix-up' or type == 'random-mix-up':
                 nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
                 translation = 0.5 * (nb + qry)
             translations.append(translation)
 
-        if get_img == True:
-            import numpy as np
-            from PIL import Image
-            for selected_i in range(expansion_size + 1):
-                translation = translations[selected_i]
-                image = translation.detach().cpu().squeeze().numpy()
-                image = np.transpose(image, (1, 2, 0))
-                image = ((image + 1) * 1 * 255.0)
-                output_img = Image.fromarray(np.uint8(image))
-                output_img.save(\
-                    f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
-                print('Save output')
+        # if get_img == True:
+        #     import numpy as np
+        #     from PIL import Image
+        #     for selected_i in range(expansion_size + 1):
+        #         translation = translations[selected_i]
+        #         image = translation.detach().cpu().squeeze().numpy()
+        #         image = np.transpose(image, (1, 2, 0))
+        #         image = ((image + 1) * 1 * 255.0)
+        #         output_img = Image.fromarray(np.uint8(image))
+        #         output_img.save(\
+        #             f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
+        #         print('Save output')
         return torch.stack(translations).squeeze()
 
 # yaml should contain original encoder path, and set poolsize and other hp
