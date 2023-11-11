@@ -85,7 +85,8 @@ class FUNIT_Trainer(nn.Module):
         this_model = self.model.module if multigpus else self.model
         
         # last_model_name = get_model_list(checkpoint_dir, "gen")
-        last_model_name = '/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt'
+        # last_model_name = '/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt'
+        last_model_name = '/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100499.pt'
         print(f'loaded {last_model_name}')
         state_dict = torch.load(last_model_name)
         this_model.gen.load_state_dict(state_dict['gen'])

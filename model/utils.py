@@ -143,7 +143,7 @@ def get_command_line_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=1)
     parser.add_argument('--episodes_per_epoch', type=int, default=1000)
-    parser.add_argument('--num_eval_episodes', type=int, default=20)
+    parser.add_argument('--num_eval_episodes', type=int, default=100)
     parser.add_argument('--model_class', type=str, default='ProtoNet', 
                         choices=['MatchNet', 'ProtoNet', 'BILSTM', 'DeepSet', 'GCN', 'FEAT', 'FEATSTAR', 'SemiFEAT', 'SemiProtoFEAT']) # None for MatchNet or ProtoNet
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
@@ -189,7 +189,7 @@ def get_command_line_parser():
     return parser
 
 # {0: 'perspective', 1: 'crop+rotate', 2: 'color'}
-def get_augmentations(img, expansion, type, get_img):
+def get_augmentations(img, expansion, type, get_img=False):
     expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
     crop_rotate = transforms.Compose([
         transforms.RandomRotation(degrees=(0, 180)),

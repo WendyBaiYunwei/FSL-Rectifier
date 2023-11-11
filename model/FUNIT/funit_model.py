@@ -188,15 +188,16 @@ class FUNITModel(nn.Module):
         if get_img == False:
             return torch.stack(translations).squeeze()
     
-    def pick_animals(self, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
         if expansion_size == 0:
             get_original = True
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
+        assert len(candidate_neighbours) > expansion_size
         with torch.no_grad():
-            qry_features = self.gen.enc_content(qry).mean((2,3)) # batch=1, feature_size
-            nb_features = self.gen.enc_content(candidate_neighbours).mean((2,3))
+            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
             nb_features_trans = nb_features.transpose(1,0)
             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
         if random == False:
@@ -215,7 +216,7 @@ class FUNITModel(nn.Module):
         
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
-            if type == 'funit':
+            if type == 'funit' or type == 'random-funit':
                 translation = self.translate_simple(nb, class_code)
             elif type == 'mix-up' or type == 'random-mix-up':
                 nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
@@ -235,5 +236,40 @@ class FUNITModel(nn.Module):
                     f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
                 print('Save output')
         return torch.stack(translations).squeeze()
+
+    # returns the best / worst nb + translation
+    def study_picker(self, picker, qry, picker_loader, mode='best'):
+        candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+        candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
+        with torch.no_grad():
+            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
+            nb_features_trans = nb_features.transpose(1,0)
+            scores = torch.mm(qry_features, nb_features_trans).squeeze()
+            # norm_div = (scores - min(scores)) / (max(scores) - min(scores))
+
+            # qry_features = translator.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            # nb_features = translator.enc_content(candidate_neighbours).mean((2,3))
+            # nb_features_trans = nb_features.transpose(1,0)
+            # sim_scores = torch.mm(qry_features, nb_features_trans).squeeze()
+            # norm_sim = (sim_scores - min(sim_scores)) / (max(sim_scores) - min(sim_scores))
+            # scores = norm_sim * 0.2 + norm_div
+            # scores = norm_div
+        if mode == 'best':
+            scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
+        else:
+            scores, idxs = torch.sort(scores, descending=True) # worst (higher KL divergence) in front
+        idxs = idxs.long()
+        selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
+        selected_nb = selected_nbs[0, :, :, :].unsqueeze(0)
+        class_code = self.compute_k_style(qry, 1)
+        output = [self.translate_simple(qry, class_code)]
+        translation = self.translate_simple(selected_nb, class_code)
+        output.append(translation)
+        class_code = self.compute_k_style(selected_nb, 1)
+        nb = self.translate_simple(selected_nb, class_code)
+        output.append(nb)
+        return output # qry, translation, nb
+
 
 # yaml should contain original encoder path, and set poolsize and other hp
