@@ -223,19 +223,22 @@ class FUNITModel(nn.Module):
                 translation = 0.5 * (nb + qry)
             translations.append(translation)
 
+        # if get_img == True:
+        #     import numpy as np
+        #     from PIL import Image
+        #     for selected_i in range(expansion_size + 1):
+        #         translation = translations[selected_i]
+        #         image = translation.detach().cpu().squeeze().numpy()
+        #         image = np.transpose(image, (1, 2, 0))
+        #         image = ((image + 1) * 1 * 255.0)
+        #         output_img = Image.fromarray(np.uint8(image))
+        #         output_img.save(\
+        #             f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
+        #         print('Save output')
         if get_img == True:
-            import numpy as np
-            from PIL import Image
-            for selected_i in range(expansion_size + 1):
-                translation = translations[selected_i]
-                image = translation.detach().cpu().squeeze().numpy()
-                image = np.transpose(image, (1, 2, 0))
-                image = ((image + 1) * 1 * 255.0)
-                output_img = Image.fromarray(np.uint8(image))
-                output_img.save(\
-                    f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
-                print('Save output')
-        return torch.stack(translations).squeeze()
+            return translations
+        else:
+            return torch.stack(translations).squeeze()
 
     # returns the best / worst nb + translation
     def study_picker(self, picker, qry, picker_loader, mode='best'):

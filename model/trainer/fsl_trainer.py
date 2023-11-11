@@ -261,7 +261,7 @@ class FSLTrainer(Trainer):
                     # print(f'getting results for {name}')
                     # expand support 
                     original_spt = new_data[:5, :, :, :]
-                    new_spt = self.get_class_expansion(original_spt, spt_expansion, type=name)
+                    new_spt = self.get_class_expansion(data[:5, :, :, :], spt_expansion, type=name)
 
                     # expand queries
                     original_qry = new_data[5:, :, :, :]
