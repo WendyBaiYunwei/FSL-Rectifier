@@ -176,9 +176,9 @@ class FSLTrainer(Trainer):
         self.picker = picker
         # evaluation mode
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
-        path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+        # path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(path)['state_dict']
+        loaded_dict = torch.load(args.model_path)['state_dict']
         new_params = {}
         keys = list(loaded_dict.keys())
         for key_i, k in enumerate(self.model.state_dict().keys()):
@@ -193,7 +193,7 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-mix-up'}
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'funit'}
+        i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -213,7 +213,6 @@ class FSLTrainer(Trainer):
         with torch.no_grad():
             for i, batch in enumerate(self.test_loader_fsl):
             # for i, batch in tqdm(enumerate(self.test_loader, 1)):
-                print(i)
                 if i >= args.num_eval_episodes:
                     break
                 if torch.cuda.is_available():
@@ -296,20 +295,26 @@ class FSLTrainer(Trainer):
         vl, _ = compute_confidence_interval(baseline[:,0])
         va, vap = compute_confidence_interval(baseline[:,1])
         
-        print('Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        # print()
+        result_str = ''
+        result_str += 'Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap)
 
         vl, _ = compute_confidence_interval(oracle[:,0])
         va, vap = compute_confidence_interval(oracle[:,1])
         
-        print('Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        result_str += 'Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap)
+        # print()
         
         for type_i in i2name:
             name = i2name[type_i]
             vl, _ = compute_confidence_interval(expansion_res[type_i][:,0])
             va, vap = compute_confidence_interval(expansion_res[type_i][:,1])
             
-            print(f'{name} Test acc={va} + {vap}\n')
+            result_str += f'{name} Test acc={va} + {vap}\n'
+            # print(f'{name} Test acc={va} + {vap}\n')
 
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record.txt', 'w') as file:
+            file.write(result_str)
         return vl, va, vap
     
     # input 01234, return 012340123401234

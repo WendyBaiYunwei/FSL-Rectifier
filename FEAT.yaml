@@ -33,5 +33,5 @@ data_folder_test: /mnt/hdd/yw/animals
 data_list_test: /mnt/hdd/yw/animals/animals_list_test.txt
 
 # test options:
-pool_size: 10
+pool_size: 20
 dataset: 'Animals'

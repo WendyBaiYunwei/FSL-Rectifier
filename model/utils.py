@@ -150,7 +150,7 @@ def get_command_line_parser():
     parser.add_argument('--backbone_class', type=str, default='ConvNet',
                         choices=['ConvNet', 'Res12', 'Res18', 'WRN'])
     parser.add_argument('--dataset', type=str, default='Animals',
-                        choices=['MiniImageNet', 'TieredImageNet', 'CUB', 'Animals'])
+                        choices=['MiniImageNet', 'TieredImageNet', 'CUB', 'Animals', 'Traffic'])
     
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--eval_way', type=int, default=5)

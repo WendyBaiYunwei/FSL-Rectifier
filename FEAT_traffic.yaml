@@ -19,7 +19,7 @@ gen:
 dis:
   nf: 64                      # base number of filters
   n_res_blks: 10              # number of residual blocks in the discriminator
-  num_classes: 119            # number of classes in the training set
+  num_classes: 38            # number of classes in the training set
   
 # data options
 num_workers: 4
@@ -35,5 +35,5 @@ data_train_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_train_clas
 data_test_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_test_class_names.txt
 
 # test options:
-pool_size: 10
+pool_size: 20
 dataset: 'Traffic'

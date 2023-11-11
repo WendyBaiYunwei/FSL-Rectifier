@@ -152,40 +152,45 @@ class FUNITModel(nn.Module):
     # translations are conducted only with the best 'expansion_size' candidates
     # best candidates are defined as those with the highest vector dot product
     # the vectors are features learnt by picker
-    def pick_traffic(self, qry, expansion_size=0, get_img=False, random=False): # only one qry
+    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+        if expansion_size == 0:
+            get_original = True
         # pool size should be <= class numbers ##slack
-        candidate_neighbours = next(iter(self.train_loader)) # from train sampler, size: pool_size, 3, h, w
-        candidate_neighbours = candidate_neighbours[0].cuda()
-        _, _, qry_features = self.dis(qry) # batch=1, feature_size
-        _, _, nb_features = self.dis(candidate_neighbours)
+        candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+        candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
+        assert len(candidate_neighbours) > expansion_size
         with torch.no_grad():
+            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
             nb_features_trans = nb_features.transpose(1,0)
-            scores = torch.mm(qry_features, nb_features_trans) # q qries, n neighbors
+            scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
         if random == False:
-            scores, idxs = torch.sort(scores)
-            selected_nbs = candidate_neighbours[idxs][:expansion_size, :, :, :]
+            scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
+            idxs = idxs.long()
+            selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
+            selected_nbs = selected_nbs[1:expansion_size+1, :, :, :]
         else:
-            selected_nbs = candidate_neighbours[:expansion_size, :, :, :]
+            selected_nbs = candidate_neighbours[1:expansion_size+1, :, :, :]
         class_code = self.compute_k_style(qry, 1)
-        translations = [self.translate_simple(qry, class_code)]
-        with torch.no_grad():
-            for selected_i in range(expansion_size):
-                nb = selected_nbs[selected_i, :, :, :]
-                translation = self.translate_simple(nb, class_code)
-                translations.append(translation)
+        translated_qry = self.translate_simple(qry, class_code)
+        if get_original == True:
+            translations = [translated_qry]
+        else:
+            translations = []
+        
+        
+        for selected_i in range(expansion_size):
+            nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
+            if type == 'funit' or type == 'random-funit':
+                class_code = self.compute_k_style(nb, 1)
+                translation = self.translate_simple(qry, class_code)
+            elif type == 'mix-up' or type == 'random-mix-up':
+                nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
+                translation = 0.5 * (nb + translated_qry)
+            translations.append(translation)
         if get_img == True:
-            import numpy as np
-            from PIL import Image
-            for selected_i in range(expansion_size + 1):
-                translation = translations[selected_i]
-                image = translation.detach().cpu().squeeze().numpy()
-                image = np.transpose(image, (1, 2, 0))
-                image = ((image + 1) * 1 * 255.0)
-                output_img = Image.fromarray(np.uint8(image))
-                output_img.save(f'./images/output{selected_i}.jpg', 'JPEG', quality=99)
-                print('Save output')
-            print(torch.stack(translations).shape)
-        if get_img == False:
+            return translations
+        else:
             return torch.stack(translations).squeeze()
     
     def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry

@@ -33,9 +33,9 @@ dis:
   num_classes: 61            # number of classes in the training set
 
 # data options
-eval_shot: 2
+eval_shot: 3
 eval_query: 1
-pool_size: 10
+pool_size: 20
 way_size: 5
 num_workers: 4
 batch_size: 32

@@ -29,9 +29,9 @@ class FSLTrainer(Trainer):
         self.test_loader_fsl = loaders[2]
 
         conf = get_config('/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml') ## slack shift
-        self.train_loader_funit = loader_from_list(
-            root=conf['data_folder_train'],
-            file_list=conf['data_list_train'],
+        self.test_loader_funit = loader_from_list(
+            root=conf['data_folder_test'],
+            file_list=conf['data_list_test'],
             batch_size=conf['pool_size'],
             new_size=140,
             height=128,
@@ -176,9 +176,9 @@ class FSLTrainer(Trainer):
         self.picker = picker
         # evaluation mode
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
-        path = '/home/yunwei/new/FSL-Rectifier/Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+        # path = '/home/yunwei/new/FSL-Rectifier/Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(path, map_location=torch.device('cuda:0'))['state_dict']
+        loaded_dict = torch.load(args.model_path, map_location=torch.device('cuda:0'))['state_dict']
         new_params = {}
         keys = list(loaded_dict.keys())
         for key_i, k in enumerate(self.model.state_dict().keys()):
@@ -190,10 +190,10 @@ class FSLTrainer(Trainer):
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-funit'}
+        i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'mix-up'}
+        # i2name = {0: 'mix-up'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -213,7 +213,6 @@ class FSLTrainer(Trainer):
         with torch.no_grad():
             for i, batch in enumerate(self.test_loader_fsl):
             # for i, batch in tqdm(enumerate(self.test_loader, 1)):
-                print(i)
                 if i >= args.num_eval_episodes:
                     break
                 if torch.cuda.is_available():
@@ -230,7 +229,7 @@ class FSLTrainer(Trainer):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = img
                     # new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                    #              self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                    #              self.test_loader_funit, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 
@@ -246,7 +245,7 @@ class FSLTrainer(Trainer):
                 for img_i in range(spt_expansion * 5):
                     img = oracle_data[img_i].unsqueeze(0)
                     oracle_new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                                 self.test_loader_funit, expansion_size=0, random=args.random_picker)
                 oracle_new_data[spt_expansion * 5:] = new_data
                 logits = self.model(oracle_new_data)
                 loss = F.cross_entropy(logits, label)
@@ -296,20 +295,25 @@ class FSLTrainer(Trainer):
         assert(i == baseline.shape[0])
         vl, _ = compute_confidence_interval(baseline[:,0])
         va, vap = compute_confidence_interval(baseline[:,1])
-        
-        print('Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        result_str = ''
+        result_str += 'Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap)
 
         vl, _ = compute_confidence_interval(oracle[:,0])
         va, vap = compute_confidence_interval(oracle[:,1])
         
-        print('Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap))
+        result_str += 'Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap)
+        # print()
         
         for type_i in i2name:
             name = i2name[type_i]
             vl, _ = compute_confidence_interval(expansion_res[type_i][:,0])
             va, vap = compute_confidence_interval(expansion_res[type_i][:,1])
             
-            print(f'{name} Test acc={va} + {vap}\n')
+            result_str += f'{name} Test acc={va} + {vap}\n'
+            # print(f'{name} Test acc={va} + {vap}\n')
+
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record.txt', 'w') as file:
+            file.write(result_str)
 
         return vl, va, vap
     
@@ -320,10 +324,10 @@ class FSLTrainer(Trainer):
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_funit, \
+                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.test_loader_funit, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
             elif type == 'random-mix-up' or type == 'random-funit':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_funit, \
+                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.test_loader_funit, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
