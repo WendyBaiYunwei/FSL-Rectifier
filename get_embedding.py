@@ -101,13 +101,13 @@ for i, data in enumerate(loader):
         labels.append(label.detach().cpu())
         need_expansion = False
 
-        expansion = get_augmentations(img, expansion_size, 'color')
+        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'color')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
         label = torch.full(label.shape, 996)
         labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
-        expansion = get_augmentations(img, expansion_size, 'crop+rotate')
+        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
         label = torch.full(label.shape, 997)
@@ -115,7 +115,7 @@ for i, data in enumerate(loader):
 
 
         expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
-                                                random=False, get_original=False, type = 'mix-up')
+                                                random=True, get_original=False, type = 'random-mix-up')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
         label = torch.full(label.shape, 998)

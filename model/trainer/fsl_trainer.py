@@ -262,21 +262,21 @@ class FSLTrainer(Trainer):
                     name = i2name[type_i]
                     # print(f'getting results for {name}')
                     # expand support 
-                    original_spt = new_data[:5, :, :, :]
-                    reconstructed_spt = data[:5, :, :, :]
-                    new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
-
+                    original_spt = oracle_data[:5, :, :, :]
+                    reconstructed_spt = new_data[:5, :, :, :]
                     # expand queries
                     original_qry = new_data[5:, :, :, :]
                     new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
                         cuda()
                     k = 0
                     if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                        new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         for class_chunk_i in range(5, len(data), 5):
                             class_chunk = data[class_chunk_i:class_chunk_i+5]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
                     else:# use restructured data
+                        new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
                         for class_chunk_i in range(5, len(new_data), 5):
                             class_chunk = new_data[class_chunk_i:class_chunk_i+5]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)

@@ -12,8 +12,8 @@ def load_data_from_pickle(embeddings_file, labels_file):
     return embeddings, labels
 
 # Perform t-SNE on the embeddings
-def perform_tsne(embeddings, perplexity=30, n_iter=500, random_state=1): ## n_iter
-    tsne = TSNE(n_components=2, perplexity=perplexity, n_iter=n_iter, random_state=random_state)
+def perform_tsne(embeddings, perplexity=30, n_iter=300, random_state=1): ## n_iter
+    tsne = TSNE(n_iter=n_iter, random_state=random_state)
     embeddings_2d = tsne.fit_transform(embeddings)
     return embeddings_2d
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     # Load embeddings and labels from the pickle files
     embeddings, labels = load_data_from_pickle(embeddings_pickle_path, labels_pickle_path)
-    states = [0, 5, 10, 42]
+    states = [0, 7, 10, 40]
     # Perform t-SNE on the embeddings
     img_idx = 1
     for state_i in range(len(states)):
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
         # utlity defi
         # Plot the t-SNE results with colors based on labels and a green cross for the centroid of the chosen class
-        aug_types = ["Color-Jitter", "Crop-Rotate", "Mix-Up", "Image-Translation"]
+        aug_types = ["Color-Jitter", "Crop-Rotate", "Mix-Up", "Our Method"]
         # auglength = len(aug_types) * aug_size
         # random_pt_x, random_pt_y = postns[0]
         # standard = [True for _ in range(len(postns))]
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             for i in range(num_classes):
                 indices = (labels == unique_labels[i]).reshape(-1)
 
-                subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=10, alpha=0.3)
+                subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=1, alpha=0.3)
             
             
             subplot.scatter(random_pt_x, random_pt_y, c='blue', marker='o', s=100, label=f'Point P in Class M')
@@ -84,4 +84,4 @@ if __name__ == "__main__":
     plt.legend(loc=(-4,-0.5))
     
     plt.savefig('tsne.png')
-    plt.savefig('tsne.pdf')
+    # plt.savefig('tsne.pdf')

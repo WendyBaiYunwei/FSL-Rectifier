@@ -170,7 +170,7 @@ class FSLTrainer(Trainer):
         self.trainer = trainer
         picker = FUNIT_Trainer(self.config)
         picker.cuda()
-        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
+        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
         picker.eval()
         picker = picker.model.gen
         self.picker = picker
@@ -190,8 +190,8 @@ class FSLTrainer(Trainer):
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
+        # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
+        i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
         # i2name = {0: 'mix-up'}
         expansion_res = []
@@ -228,7 +228,7 @@ class FSLTrainer(Trainer):
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = img
-                    # new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                    # new_data[img_i] = trainer.model.pick_traffic(picker, img,\
                     #              self.test_loader_funit, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
@@ -244,7 +244,7 @@ class FSLTrainer(Trainer):
                 self.args.eval_query = old_qry
                 for img_i in range(spt_expansion * 5):
                     img = oracle_data[img_i].unsqueeze(0)
-                    oracle_new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                    oracle_new_data[img_i] = trainer.model.pick_traffic(picker, img,\
                                  self.test_loader_funit, expansion_size=0, random=args.random_picker)
                 oracle_new_data[spt_expansion * 5:] = new_data
                 logits = self.model(oracle_new_data)
@@ -265,7 +265,7 @@ class FSLTrainer(Trainer):
                     # expand support 
                     reconstructed_spt = new_data[:5, :, :, :]
                     original_spt = data[:5, :, :, :]
-                    new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
+                    
 
                     # expand queries
                     original_qry = new_data[5:, :, :, :]
@@ -273,11 +273,13 @@ class FSLTrainer(Trainer):
                         cuda()
                     k = 0
                     if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                        new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         for class_chunk_i in range(5, len(data), 5):
                             class_chunk = data[class_chunk_i:class_chunk_i+5]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
                     else:# use restructured data
+                        new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
                         for class_chunk_i in range(5, len(new_data), 5):
                             class_chunk = new_data[class_chunk_i:class_chunk_i+5]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
@@ -324,10 +326,10 @@ class FSLTrainer(Trainer):
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.test_loader_funit, \
+                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_funit, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
             elif type == 'random-mix-up' or type == 'random-funit':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.test_loader_funit, \
+                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_funit, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
