@@ -11,6 +11,7 @@ from model.FUNIT.utils import get_train_loaders, get_config
 if __name__ == '__main__':
     parser = get_command_line_parser()
     args = postprocess_args(parser.parse_args())
+    assert args.spt_expansion > 0
     # with launch_ipdb_on_exception():
     config = get_config('./picker.yaml')
     # assert config['max_iter'] == args.max_epoch * args.episodes_per_epoch

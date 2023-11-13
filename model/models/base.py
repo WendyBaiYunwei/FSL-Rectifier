@@ -42,22 +42,16 @@ class FewShotModel(nn.Module):
             x = x.squeeze(0)
             instance_embs = self.encoder(x)           #len, emb
 
-            one_shot_embs = instance_embs[:5]
-            if spt_expansion > 0:
-                mean_sptexp_embs = instance_embs[5:5 * (1 + spt_expansion)].mean(dim=0).unsqueeze(0)
-                new_spt = 0.5 * (one_shot_embs + mean_sptexp_embs)
-            else:
-                new_spt = one_shot_embs
+            spt_cutoff = 5*(1 + spt_expansion)
+            spt_embs = instance_embs[:spt_cutoff].reshape(1 + spt_expansion, 5, -1)
+            new_spt = spt_embs.mean(dim=0)
 
-            qry_embs = instance_embs[5 * (1 + spt_expansion):]
-            if qry_expansion > 0:
-                one_qry_embs = qry_embs[:-5 * qry_expansion]
-                mean_qryexp_embs = qry_embs[-5 * qry_expansion:].mean(dim=0).unsqueeze(0)
-                new_qry = 0.5 * (one_qry_embs + mean_qryexp_embs)
-            else:
-                new_qry = qry_embs
+            new_qry = instance_embs[spt_cutoff:]
+            # eval_query = self.args.eval_query
+            # new_qry = qry_embs.reshape(eval_query + qry_expansion, 5, -1)
+            # new_qry = new_qry.mean(dim=0)
             
-            new_embs = torch.cat([new_spt, new_qry]).reshape(5 + len(new_qry), -1)
+            new_embs = torch.cat([new_spt, new_qry]).reshape(len(new_spt) + len(new_qry), -1)
             support_idx, query_idx = self.split_instances(x)
             if self.training:
                 logits, logits_reg = self._forward(new_embs, support_idx, query_idx)

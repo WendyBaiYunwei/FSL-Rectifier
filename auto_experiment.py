@@ -30,10 +30,10 @@ paths = [
 
 commands = [
    # f"python train_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 100 --model_path {paths[2]}",
-   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1 --model_path {paths[0]}",
-   # f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 100 --use_euclidean --model_path {paths[0]}",
-   # f"python train_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 100 --model_path {paths[1]}",
-   # f"python train_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 50 --use_euclidean --model_path {paths[1]}",
+   # f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1 --model_path {paths[0]}",
+   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 10 --use_euclidean --model_path {paths[0]} --add_transform crop+rotate",
+   f"python train_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 20 --model_path {paths[1]} --add_transform crop+rotate",
+   f"python train_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 10 --use_euclidean --model_path {paths[1]} --add_transform crop+rotate",
    # f"python train_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {paths[2]}",
    # f"python train_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 100 --model_path {paths[3]}",
    # f"python train_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {paths[3]}",

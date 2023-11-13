@@ -195,6 +195,7 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
         # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
         i2name = {0: 'color', 1:'affine' , 2: 'crop+rotate', 3: 'funit'}
+        # i2name = {0: 'color'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -223,15 +224,15 @@ class FSLTrainer(Trainer):
                 # print(new_data.shape)
                 
                 # get baseline
-                # for img_i in range(len(new_data)):
-                #     img = data[img_i].unsqueeze(0)
-                #     new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                #                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
-                # logits = self.model(new_data)
-                # loss = F.cross_entropy(logits, label)
-                # acc = count_acc(logits, label)
-                # baseline[i-1, 0] = loss.item()
-                # baseline[i-1, 1] = acc
+                for img_i in range(len(new_data)):
+                    img = data[img_i].unsqueeze(0)
+                    new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                logits = self.model(new_data)
+                loss = F.cross_entropy(logits, label)
+                acc = count_acc(logits, label)
+                baseline[i-1, 0] = loss.item()
+                baseline[i-1, 1] = acc
 
                 # oracle_new_data = torch.empty(oracle_data.shape).cuda()
                 # for img_i in range(spt_expansion * 5):
@@ -243,7 +244,7 @@ class FSLTrainer(Trainer):
                 # loss = F.cross_entropy(logits, label)
                 
                 # acc = count_acc(logits, label)
-                new_data = data
+                # new_data = data
                 oracle[i-1, 0] = 0#loss.item()
                 oracle[i-1, 1] = 0#acc
                 
@@ -259,34 +260,47 @@ class FSLTrainer(Trainer):
                     # expand queries
                     
                     
-                    if spt_expansion == 0:
-                        new_spt = reconstructed_spt
-                    elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
-                        new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)                   
+                    if spt_expansion == 0 and self.args.add_transform == None:
+                        combined_spt = reconstructed_spt
+                    elif self.args.add_transform and \
+                        name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data:
+                        expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
+                        additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
+                             type=self.args.add_transform)  
+                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)
+                    elif self.args.add_transform:
+                        expanded_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name) 
+                        additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
+                             type=name)  
+                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)                  
+                    elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
+                        expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
+                        combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
                     else:
-                        new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
-
+                        expanded_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
+                        combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
+        #             exit()
                     original_qry = new_data[5:, :, :, :]
-                    new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
-                        cuda()
-                    k = 0
-                    if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
-                        new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
-                        for class_chunk_i in range(5, len(data), 5):
-                            class_chunk = data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
-                            k += 1
-                    else:# use restructured data
-                        new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
-                        for class_chunk_i in range(5, len(new_data), 5):
-                            class_chunk = new_data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
-                            k += 1
-                    assert k == old_qry
-                    new_qries = new_qries.flatten(end_dim=1)
-
-                    expanded_data = torch.cat([original_spt, new_spt, original_qry, new_qries], dim=0)
-                    logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
+        #             new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
+        #                 cuda()
+        #             k = 0
+        #             if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+        #                 for class_chunk_i in range(5, len(data), 5):
+        #                     class_chunk = data[class_chunk_i:class_chunk_i+5]
+        #                     new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
+        #                     k += 1
+        #             else:# use restructured data
+        #                 for class_chunk_i in range(5, len(new_data), 5):
+        #                     class_chunk = new_data[class_chunk_i:class_chunk_i+5]
+        #                     new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
+        #                     k += 1
+        #             assert k == old_qry
+        #             new_qries = new_qries.flatten(end_dim=1)
+                    expanded_data = torch.cat([combined_spt, original_qry], dim=0)
+                    if self.args.add_transform:
+                        logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion*2)
+                    else:
+                        logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
                     loss = F.cross_entropy(logits, label)
                     acc = count_acc(logits, label)
                     expansion_res[type_i][i-1, 0] = loss.item()
@@ -314,7 +328,7 @@ class FSLTrainer(Trainer):
             result_str += f'{name} Test acc={va} + {vap}\n'
             # print(f'{name} Test acc={va} + {vap}\n')
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record2.txt', 'w') as file:
             file.write(result_str)
         return vl, va, vap
     
