@@ -154,10 +154,10 @@ def get_command_line_parser():
     
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--eval_way', type=int, default=5)
-    parser.add_argument('--shot', type=int, default=5)
-    parser.add_argument('--eval_shot', type=int, default=5)
-    parser.add_argument('--query', type=int, default=1)
-    parser.add_argument('--eval_query', type=int, default=1)
+    parser.add_argument('--shot', type=int, default=1)
+    parser.add_argument('--eval_shot', type=int, default=1)
+    parser.add_argument('--query', type=int, default=15)
+    parser.add_argument('--eval_query', type=int, default=15)
     parser.add_argument('--balance', type=float, default=0)
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--temperature2', type=float, default=1)  # the temperature in the  
@@ -183,8 +183,8 @@ def get_command_line_parser():
     parser.add_argument('--eval_interval', type=int, default=1)
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--random_picker', action='store_true', default=True)
-    parser.add_argument('--qry_expansion', type=int, default=0)
-    parser.add_argument('--spt_expansion', type=int, default=4)
+    parser.add_argument('--qry_expansion', type=int, default=1)
+    parser.add_argument('--spt_expansion', type=int, default=1)
     parser.add_argument('--model_path', type=str, required=True)
     
     return parser

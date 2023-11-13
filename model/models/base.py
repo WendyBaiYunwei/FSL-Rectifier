@@ -33,7 +33,7 @@ class FewShotModel(nn.Module):
             return  (torch.Tensor(np.arange(args.eval_way*args.eval_shot)).long().view(1, args.eval_shot, args.eval_way), 
                      torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way * (args.eval_shot + args.eval_query))).long().view(1, args.eval_query, args.eval_way))
 
-    def forward(self, x, get_feature=False, qry_expansion=0):
+    def forward(self, x, get_feature=False, qry_expansion=0, spt_expansion=0):
         if get_feature:
             # get feature with the provided embeddings
             return self.encoder(x)
@@ -41,22 +41,24 @@ class FewShotModel(nn.Module):
             # feature extraction
             x = x.squeeze(0)
             instance_embs = self.encoder(x)           #len, emb
-            # split support query set for few-shot data
-            support_idx, query_idx = self.split_instances(x)
-            if qry_expansion > 0:
-                args = self.args
-                spt_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot)).long()
-                qry_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way *\
-                                     (args.eval_shot + args.eval_query * (qry_expansion + 1)))).long()
-                real_query_idx = torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way *\
-                                     (args.eval_shot + args.eval_query))).long()
-                new_embs = torch.empty(instance_embs.shape).cuda()
-                new_embs[spt_idx] = instance_embs[spt_idx]
-                new_embs[real_query_idx] = instance_embs[qry_idx].reshape(1 + qry_expansion, 5, -1).mean(dim=0)
-                real_length = len(spt_idx) + len(real_query_idx)
-                new_embs = new_embs[:real_length, :]
+
+            one_shot_embs = instance_embs[:5]
+            if spt_expansion > 0:
+                mean_sptexp_embs = instance_embs[5:5 * (1 + spt_expansion)].mean(dim=0).unsqueeze(0)
+                new_spt = 0.5 * (one_shot_embs + mean_sptexp_embs)
             else:
-                new_embs = instance_embs
+                new_spt = one_shot_embs
+
+            qry_embs = instance_embs[5 * (1 + spt_expansion):]
+            if qry_expansion > 0:
+                one_qry_embs = qry_embs[:-5 * qry_expansion]
+                mean_qryexp_embs = qry_embs[-5 * qry_expansion:].mean(dim=0).unsqueeze(0)
+                new_qry = 0.5 * (one_qry_embs + mean_qryexp_embs)
+            else:
+                new_qry = qry_embs
+            
+            new_embs = torch.cat([new_spt, new_qry]).reshape(5 + len(new_qry), -1)
+            support_idx, query_idx = self.split_instances(x)
             if self.training:
                 logits, logits_reg = self._forward(new_embs, support_idx, query_idx)
                 return logits, logits_reg

@@ -323,7 +323,10 @@ class FSLTrainer(Trainer):
     # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
     def get_class_expansion(self, picker, data, expansion, type='funit'):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3]).cuda()
+
         for class_i in range(5):
+            print(data.shape)
+            exit()
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
                 class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_funit, \

@@ -193,7 +193,8 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-mix-up'}
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
+        # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
+        i2name = {0: 'color', 1:'affine' , 2: 'crop+rotate', 3: 'funit'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -207,7 +208,6 @@ class FSLTrainer(Trainer):
         #         self.trlog['max_acc_interval']))
         qry_expansion = args.qry_expansion
         spt_expansion = args.spt_expansion
-        assert spt_expansion == (args.eval_shot - 1)
         old_shot = args.eval_shot
         old_qry = args.eval_query
         with torch.no_grad():
@@ -216,55 +216,56 @@ class FSLTrainer(Trainer):
                 if i >= args.num_eval_episodes:
                     break
                 if torch.cuda.is_available():
-                    oracle_data, _ = [_.cuda() for _ in batch]
+                    data, _ = [_.cuda() for _ in batch]
                 else:
-                    oracle_data = batch[0]
-                data = oracle_data[spt_expansion * 5:]
+                    data = batch[0]
                 new_data = torch.empty(data.shape).cuda()
                 # print(new_data.shape)
-                # exit()
-                self.args.eval_shot = 1
-                self.args.eval_query = old_qry
-                for img_i in range(len(new_data)):
-                    img = data[img_i].unsqueeze(0)
-                    new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
-                logits = self.model(new_data)
-                loss = F.cross_entropy(logits, label)
                 
-                acc = count_acc(logits, label)
-                baseline[i-1, 0] = loss.item()
-                baseline[i-1, 1] = acc
+                # get baseline
+                # for img_i in range(len(new_data)):
+                #     img = data[img_i].unsqueeze(0)
+                #     new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                #                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                # logits = self.model(new_data)
+                # loss = F.cross_entropy(logits, label)
+                # acc = count_acc(logits, label)
+                # baseline[i-1, 0] = loss.item()
+                # baseline[i-1, 1] = acc
 
-                oracle_new_data = torch.empty(oracle_data.shape).cuda()
-                # print(new_data.shape)
-                # exit()
-                self.args.eval_shot = old_shot
-                self.args.eval_query = old_qry
-                for img_i in range(spt_expansion * 5):
-                    img = oracle_data[img_i].unsqueeze(0)
-                    oracle_new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
-                oracle_new_data[spt_expansion * 5:] = new_data
-                logits = self.model(oracle_new_data)
-                loss = F.cross_entropy(logits, label)
+                # oracle_new_data = torch.empty(oracle_data.shape).cuda()
+                # for img_i in range(spt_expansion * 5):
+                #     img = oracle_data[img_i].unsqueeze(0)
+                #     oracle_new_data[img_i] = trainer.model.pick_animals(picker, img,\
+                #                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                # oracle_new_data[spt_expansion * 5:] = new_data
+                # logits = self.model(oracle_new_data)
+                # loss = F.cross_entropy(logits, label)
                 
-                acc = count_acc(logits, label)
-                oracle[i-1, 0] = loss.item()
-                oracle[i-1, 1] = acc
+                # acc = count_acc(logits, label)
+                new_data = data
+                oracle[i-1, 0] = 0#loss.item()
+                oracle[i-1, 1] = 0#acc
                 
                 # old data shape: 80, 3, 128, 128
                 # old_spt = torch.empty(5 * shot, data.shape[1], data.shape[2], data.shape[3]).\
                 #     cuda()
-                self.args.eval_shot = 1 + spt_expansion
-                self.args.eval_query = old_qry
                 for type_i in i2name:
                     name = i2name[type_i]
                     # print(f'getting results for {name}')
                     # expand support 
-                    original_spt = oracle_data[:5, :, :, :]
+                    original_spt = data[:5, :, :, :]
                     reconstructed_spt = new_data[:5, :, :, :]
                     # expand queries
+                    
+                    
+                    if spt_expansion == 0:
+                        new_spt = reconstructed_spt
+                    elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                        new_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)                   
+                    else:
+                        new_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
+
                     original_qry = new_data[5:, :, :, :]
                     new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
                         cuda()
@@ -285,7 +286,7 @@ class FSLTrainer(Trainer):
                     new_qries = new_qries.flatten(end_dim=1)
 
                     expanded_data = torch.cat([original_spt, new_spt, original_qry, new_qries], dim=0)
-                    logits = self.model(expanded_data, qry_expansion=qry_expansion)
+                    logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
                     loss = F.cross_entropy(logits, label)
                     acc = count_acc(logits, label)
                     expansion_res[type_i][i-1, 0] = loss.item()
