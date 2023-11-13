@@ -11,7 +11,7 @@ import torch
 from model.models.classifier import Classifier
 
 # get 100 randomly sampled animals embeddings
-sample_iters = 200 * 10
+sample_iters = 50#200 * 10
 path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
@@ -77,7 +77,7 @@ picker.eval()
 model = model.cuda()
 embeddings = []
 labels = []
-expansion_size = 10
+expansion_size = 5
 need_expansion = True
 for i, data in enumerate(loader):
     if i%100 == 0:
@@ -95,38 +95,42 @@ for i, data in enumerate(loader):
     embedding = model(reconstructed_img.unsqueeze(0), is_emb=True)
     embeddings.append(embedding.detach().cpu())
     labels.append(label)
-    if label == 0 and need_expansion == True: # get expansion
+    if True or label == 0 and need_expansion == True: # get expansion
         labels.pop()
         label = torch.full(label.shape, 995) # for the random point
         labels.append(label.detach().cpu())
         need_expansion = False
 
-        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'color')
+        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size*2, 'color')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
-        label = torch.full(label.shape, 996)
-        labels.extend([label.detach().cpu() for _ in range(expansion_size)])
+        label = torch.full((expansion_size*2,), 996)
+        labels.append(label.detach().cpu())
+        # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
-        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
+        crop_expansion1 = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
+        crop_expansion2 = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
+        embedding = model(torch.cat([crop_expansion1, crop_expansion2], dim=0), is_emb=True)
+        embeddings.append(embedding.detach().cpu())
+        label = torch.full((expansion_size*2,), 997)
+        labels.append(label.detach().cpu())
+        # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
+
+        expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size*2,\
+                                                random=False, get_original=False, type = 'mix-up')
         embedding = model(expansion, is_emb=True)
         embeddings.append(embedding.detach().cpu())
-        label = torch.full(label.shape, 997)
-        labels.extend([label.detach().cpu() for _ in range(expansion_size)])
-
-
-        expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
-                                                random=True, get_original=False, type = 'random-mix-up')
-        embedding = model(expansion, is_emb=True)
-        embeddings.append(embedding.detach().cpu())
-        label = torch.full(label.shape, 998)
-        labels.extend([label.detach().cpu() for _ in range(expansion_size)])
+        label = torch.full((expansion_size*2,), 998)
+        labels.append(label.detach().cpu())
+        # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
         expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
                                                 random=False, get_original=False, type = 'funit')
-        embedding = model(expansion, is_emb=True)
+        embedding = model(torch.cat([crop_expansion1, expansion], dim=0), is_emb=True)
         embeddings.append(embedding.detach().cpu())
-        label = torch.full(label.shape, 999)
-        labels.extend([label.detach().cpu() for _ in range(expansion_size)])
+        label = torch.full((expansion_size*2,), 999)
+        labels.append(label.detach().cpu())
+        # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 embeddings = np.concatenate(embeddings)
 print(embeddings.shape)
 labels = np.concatenate(labels).reshape(-1, 1)

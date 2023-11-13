@@ -27,20 +27,35 @@ class FSLTrainer(Trainer):
 
         self.test_loader_funit = loaders[1]
         self.test_loader_fsl = loaders[2]
+        self.train_loader = loaders[3]
 
-        conf = get_config('/home/yunwei/new/FSL-Rectifier/picker.yaml') ## slack shift
         self.train_loader_funit = loader_from_list(
-            root=conf['data_folder_train'],
-            file_list=conf['data_list_train'],
-            batch_size=conf['pool_size'],
+            root=config['data_folder_train'],
+            file_list=config['data_list_train'],
+            batch_size=config['pool_size'],
             new_size=140,
             height=128,
             width=128,
             crop=True,
             num_workers=4,
-            dataset=conf['dataset'])
+            dataset=config['dataset'])
         # self.train_loader, self.val_loader, self.test_loader = get_dataloader(args)
         self.model, self.para_model = prepare_model(args)
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['state_dict']
+        new_params = {}
+        keys = list(loaded_dict.keys())
+        # print(keys)
+        # print(self.model.state_dict().keys())
+        # exit()
+        for key in self.model.state_dict().keys():
+            # if 'encoder' in k:
+            #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
+            if key in keys:
+                new_params[key] = loaded_dict[key]
+            else:
+                new_params[key] = self.model.state_dict()[key]
+        # assert key_i == len(keys) - 3
+        self.model.load_state_dict(new_params) ## arg path
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
 
     def prepare_label(self):
@@ -79,6 +94,8 @@ class FSLTrainer(Trainer):
         # for batch in self.train_loader:
             self.train_step += 1
 
+            if self.train_step > args.max_epoch * args.episodes_per_epoch:
+                break
             if torch.cuda.is_available():
                 data, gt_label = [_.cuda() for _ in batch]
             else:
@@ -115,6 +132,10 @@ class FSLTrainer(Trainer):
             # refresh start_tm
             # self.lr_scheduler.step()
             # self.try_evaluate(epoch)
+        import os.path as osp
+        import os
+        if not osp.exists(args.save_path):
+            os.mkdir(args.save_path)
 
         torch.save(self.trlog, osp.join(args.save_path, 'trlog'))
         self.save_model('epoch-last')
@@ -178,14 +199,20 @@ class FSLTrainer(Trainer):
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(args.model_path)['state_dict']
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['params']
         new_params = {}
         keys = list(loaded_dict.keys())
-        for key_i, k in enumerate(self.model.state_dict().keys()):
+        # print(keys)
+        # print(self.model.state_dict().keys())
+        # exit()
+        for key in self.model.state_dict().keys():
             # if 'encoder' in k:
             #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
-            new_params[k] = loaded_dict[keys[key_i]]
-        assert key_i == len(keys) - 3
+            if key in keys:
+                new_params[key] = loaded_dict[key]
+            else:
+                new_params[key] = self.model.state_dict()[key]
+        # assert key_i == len(keys) - 3
         self.model.load_state_dict(new_params) ## arg path
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
@@ -194,7 +221,7 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
         # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
-        i2name = {0: 'color', 1:'affine' , 2: 'crop+rotate', 3: 'funit'}
+        i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit'}
         # i2name = {0: 'color'}
         expansion_res = []
         for i in i2name:
@@ -328,7 +355,7 @@ class FSLTrainer(Trainer):
             result_str += f'{name} Test acc={va} + {vap}\n'
             # print(f'{name} Test acc={va} + {vap}\n')
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record2.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record3.txt', 'w') as file:
             file.write(result_str)
         return vl, va, vap
     

@@ -11,13 +11,12 @@ from model.FUNIT.utils import get_train_loaders, get_config
 if __name__ == '__main__':
     parser = get_command_line_parser()
     args = postprocess_args(parser.parse_args())
-    args.spt_expansion = 0
-    args.qry_expansion = 0
+    assert args.spt_expansion > 0
     # with launch_ipdb_on_exception():
     config = get_config('./picker.yaml')
-    config['max_iter'] == args.max_epoch * args.episodes_per_epoch
+    # assert config['max_iter'] == args.max_epoch * args.episodes_per_epoch
     config['way_size'] = args.way
-    config['batch_size'] = args.query + args.shot
+    config['batch_size'] = args.eval_query + args.eval_shot
     config['eval_shot'] = args.eval_shot
     config['eval_query'] = args.eval_query
     
@@ -27,8 +26,8 @@ if __name__ == '__main__':
 
     set_gpu(args.gpu)
     trainer = FSLTrainer(args, config)
-    trainer.train()
-    # trainer.evaluate_test()
+    # trainer.train()
+    trainer.evaluate_test()
     # trainer.final_record()
     print(args.save_path)
 

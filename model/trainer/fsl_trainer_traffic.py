@@ -178,22 +178,28 @@ class FSLTrainer(Trainer):
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
         # path = '/home/yunwei/new/FSL-Rectifier/Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(args.model_path, map_location=torch.device('cuda:0'))['state_dict']
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['params']
         new_params = {}
         keys = list(loaded_dict.keys())
-        for key_i, k in enumerate(self.model.state_dict().keys()):
+        # print(keys)
+        # print(self.model.state_dict().keys())
+        # exit()
+        for key in self.model.state_dict().keys():
             # if 'encoder' in k:
             #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
-            new_params[k] = loaded_dict[keys[key_i]]
-        assert key_i == len(keys) - 3
+            if key in keys:
+                new_params[key] = loaded_dict[key]
+            else:
+                new_params[key] = self.model.state_dict()[key]
+        # assert key_i == len(keys) - 3
         self.model.load_state_dict(new_params) ## arg path
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
+        i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'funit'}
+        # i2name = {0: 'funit'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -302,6 +308,13 @@ class FSLTrainer(Trainer):
                     expansion_res[type_i][i-1, 0] = loss.item()
                     expansion_res[type_i][i-1, 1] = acc
 
+        assert(i == baseline.shape[0])
+        vl, _ = compute_confidence_interval(baseline[:,0])
+        va, vap = compute_confidence_interval(baseline[:,1])
+        
+        # print()
+        result_str = ''
+        result_str += 'Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap)
         
         for type_i in i2name:
             name = i2name[type_i]
@@ -311,7 +324,7 @@ class FSLTrainer(Trainer):
             result_str += f'{name} Test acc={va} + {vap}\n'
             # print(f'{name} Test acc={va} + {vap}\n')
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record2.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record3.txt', 'w') as file:
             file.write(result_str)
 
         return vl, va, vap

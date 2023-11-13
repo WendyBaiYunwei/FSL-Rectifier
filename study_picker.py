@@ -29,8 +29,8 @@ args = parser.parse_args()
 # get the embeddings in numpy
 # store the embeddings
 loader = loader_from_list(
-    root='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals',
-    file_list='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/datasets/animals_list_test.txt',
+    root='/mnt/hdd/yw/animals',
+    file_list='/mnt/hdd/yw/animals/animals_list_test.txt',
     batch_size=1,
     new_size=140,
     height=128,
@@ -56,12 +56,12 @@ train_loader = loader_from_list(
 
 trainer = FUNIT_Trainer(config)
 trainer.cuda()
-trainer.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt')
+trainer.load_ckpt('animal_pretrained.pt')
 trainer.eval()
 
 picker = FUNIT_Trainer(config)
 picker.cuda()
-picker.load_ckpt('/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100999.pt')
+picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
 picker.eval()
 picker = picker.model.gen
 
@@ -74,6 +74,7 @@ for i, data in enumerate(loader):
 
     for mode in ['best', 'worst']:
         qry, translation, nb = trainer.model.study_picker(picker, img, train_loader, mode)
+        # print(out.shape)
         write_1images((qry, nb, translation), './analysis', postfix=f'{mode}_{i}')
     if i == 10:
         exit()

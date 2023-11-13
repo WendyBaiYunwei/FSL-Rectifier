@@ -61,7 +61,7 @@ if __name__ == "__main__":
             for i in range(num_classes):
                 indices = (labels == unique_labels[i]).reshape(-1)
 
-                subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=1, alpha=0.3)
+                subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=4, alpha=0.3)
             
             
             subplot.scatter(random_pt_x, random_pt_y, c='blue', marker='o', s=100, label=f'Point P in Class M')
