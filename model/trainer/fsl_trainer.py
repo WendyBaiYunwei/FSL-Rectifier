@@ -41,21 +41,6 @@ class FSLTrainer(Trainer):
             dataset=config['dataset'])
         # self.train_loader, self.val_loader, self.test_loader = get_dataloader(args)
         self.model, self.para_model = prepare_model(args)
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['state_dict']
-        new_params = {}
-        keys = list(loaded_dict.keys())
-        # print(keys)
-        # print(self.model.state_dict().keys())
-        # exit()
-        for key in self.model.state_dict().keys():
-            # if 'encoder' in k:
-            #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
-            if key in keys:
-                new_params[key] = loaded_dict[key]
-            else:
-                new_params[key] = self.model.state_dict()[key]
-        # assert key_i == len(keys) - 3
-        self.model.load_state_dict(new_params) ## arg path
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
 
     def prepare_label(self):
@@ -76,15 +61,29 @@ class FSLTrainer(Trainer):
     
     def train(self):
         args = self.args
+        
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['state_dict']
+        new_params = {}
+        keys = list(loaded_dict.keys())
+        # print(keys)
+        # print(self.model.state_dict().keys())
+        # exit()
+        for key in self.model.state_dict().keys():
+            # if 'encoder' in k:
+            #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
+            if key in keys:
+                new_params[key] = loaded_dict[key]
+            else:
+                new_params[key] = self.model.state_dict()[key]
+        # assert key_i == len(keys) - 3
+        self.model.load_state_dict(new_params) ## arg path
         self.model.train()
+        
         if self.args.fix_BN:
             self.model.encoder.eval()
         
         # start FSL training
         label, label_aux = self.prepare_label()
-        self.model.train()
-        if self.args.fix_BN:
-            self.model.encoder.eval()
         
         tl1 = Averager()
         tl2 = Averager()

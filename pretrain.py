@@ -16,7 +16,7 @@ from model.FUNIT.utils import get_pretrain_loaders, get_config
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--max_epoch', type=int, default=5) # 40 for resnet, 10 for convnet
+    parser.add_argument('--max_epoch', type=int, default=10) # 40 for resnet, 10 for convnet
     parser.add_argument('--lr', type=float, default=0.1) # 0.1 for resnet, 0.01 for convnet
     parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
     parser.add_argument('--dataset', type=str, default='Traffic', choices=['MiniImageNet', 'TieredImagenet', 'CUB', "Animals", 'Traffic'])    

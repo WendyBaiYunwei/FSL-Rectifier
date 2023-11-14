@@ -8,11 +8,12 @@ from model.trainer.helpers import (
 from model.FUNIT.trainer import FUNIT_Trainer
 import argparse
 import torch
-from model.models.classifier import Classifier
+from model.models.feat import FEAT
 
 # get 100 randomly sampled animals embeddings
-sample_iters = 50#200 * 10
-path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+sample_iters = 1000#200 * 10
+# path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+path = '/home/yunwei/new/FSL-Rectifier/checkpoints/Animals-FEAT-ConvNet-05w01s15q-DIS/20_0.5_lr0.01mul10_step_T11T21_b0_bsz080-NoAug/epoch-last.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--max_epoch', type=int, default=40) # 40 for resnet, 10 for convnet
@@ -54,13 +55,21 @@ train_loader = loader_from_list(
     num_workers=4,
     dataset=config['dataset'])
 args.num_class = 119
-model = Classifier(args)
-loaded_dict = torch.load(path)['state_dict']
+model = FEAT(args)
+loaded_dict = torch.load(path)['params']
 new_params = {}
-for k in model.state_dict().keys():
+keys = list(loaded_dict.keys())
+# print(keys)
+# print(self.model.state_dict().keys())
+# exit()
+for key in model.state_dict().keys():
     # if 'encoder' in k:
     #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
-    new_params[k] = loaded_dict[k]
+    if key in keys:
+        new_params[key] = loaded_dict[key]
+    else:
+        new_params[key] = model.state_dict()[key]
+# assert key_i == len(keys) - 3
 model.load_state_dict(new_params) ## arg path
 
 trainer = FUNIT_Trainer(config)
@@ -85,48 +94,53 @@ for i, data in enumerate(loader):
     img = data[0].cuda()
     label = data[1].detach().cpu()
     keep_idx = label < 10
+    # print(label.shape)
+    # exit()
     img = img[keep_idx]
     if len(img) == 0:
         continue
     label = label[keep_idx]
+    # print(label)
+    # exit()
     if i >= sample_iters: ## sample_iters
         break
     reconstructed_img = trainer.model.pick_animals(picker, img, train_loader, expansion_size=0)
-    embedding = model(reconstructed_img.unsqueeze(0), is_emb=True)
+    embedding = model(reconstructed_img.unsqueeze(0), get_feature=True)
     embeddings.append(embedding.detach().cpu())
+    # print(label)
     labels.append(label)
-    if True or label == 0 and need_expansion == True: # get expansion
+    if label == 0 and need_expansion == True: # get expansion
         labels.pop()
         label = torch.full(label.shape, 995) # for the random point
         labels.append(label.detach().cpu())
         need_expansion = False
 
-        expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size*2, 'color')
-        embedding = model(expansion, is_emb=True)
-        embeddings.append(embedding.detach().cpu())
-        label = torch.full((expansion_size*2,), 996)
-        labels.append(label.detach().cpu())
-        # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
+        # expansion = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size*2, 'color')
+        # embedding = model(expansion, get_feature=True)
+        # embeddings.append(embedding.detach().cpu())
+        # label = torch.full((expansion_size*2,), 996)
+        # labels.append(label.detach().cpu())
+        # # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
         crop_expansion1 = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
-        crop_expansion2 = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
-        embedding = model(torch.cat([crop_expansion1, crop_expansion2], dim=0), is_emb=True)
-        embeddings.append(embedding.detach().cpu())
-        label = torch.full((expansion_size*2,), 997)
-        labels.append(label.detach().cpu())
+        # crop_expansion2 = get_augmentations(reconstructed_img.unsqueeze(0), expansion_size, 'crop+rotate')
+        # embedding = model(torch.cat([crop_expansion1, crop_expansion2], dim=0), get_feature=True)
+        # embeddings.append(embedding.detach().cpu())
+        # label = torch.full((expansion_size*2,), 997)
+        # labels.append(label.detach().cpu())
         # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
-        expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size*2,\
-                                                random=False, get_original=False, type = 'mix-up')
-        embedding = model(expansion, is_emb=True)
-        embeddings.append(embedding.detach().cpu())
-        label = torch.full((expansion_size*2,), 998)
-        labels.append(label.detach().cpu())
+        # expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size*2,\
+        #                                         random=False, get_original=False, type = 'mix-up')
+        # embedding = model(expansion, get_feature=True)
+        # embeddings.append(embedding.detach().cpu())
+        # label = torch.full((expansion_size*2,), 998)
+        # labels.append(label.detach().cpu())
         # labels.extend([label.detach().cpu() for _ in range(expansion_size)])
 
         expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=expansion_size,\
                                                 random=False, get_original=False, type = 'funit')
-        embedding = model(torch.cat([crop_expansion1, expansion], dim=0), is_emb=True)
+        embedding = model(torch.cat([crop_expansion1, expansion], dim=0), get_feature=True)
         embeddings.append(embedding.detach().cpu())
         label = torch.full((expansion_size*2,), 999)
         labels.append(label.detach().cpu())

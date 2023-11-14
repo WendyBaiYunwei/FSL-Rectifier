@@ -35,7 +35,7 @@ dis:
 # data options
 eval_shot: 3
 eval_query: 1
-pool_size: 50
+pool_size: 30
 way_size: 5
 num_workers: 4
 batch_size: 32

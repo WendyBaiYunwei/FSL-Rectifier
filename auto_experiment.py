@@ -44,46 +44,46 @@ fsl_paths = [
 # ]
 
 commands = [
-   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-
-   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-
-   f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-   f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
-   f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-
-   
-   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --model_path {fsl_paths[6]}  --add_transform crop+rotate",
-   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[7]} --add_transform crop+rotate",
+   "python pretrain.py --max_epoch 40 --lr 0.01 --dataset Animals --backbone_class ConvNet",
+   # ProtoNet
+   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 40 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
+   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 40 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
    f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {fsl_paths[0]} --add_transform crop+rotate",
    f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[1]} --add_transform crop+rotate",
    
-   f"python test_fsl_traffic.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --model_path {fsl_paths[8]}  --add_transform crop+rotate",
-   f"python test_fsl_traffic.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[9]} --add_transform crop+rotate",
+   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
+   f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --model_path {fsl_paths[6]} --add_transform original",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[7]} --add_transform original",
+
+   # FEAT
+   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --max_epoch 50 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
+   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --max_epoch 50 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
    f"python test_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {fsl_paths[2]} --add_transform crop+rotate",
    f"python test_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[3]} --add_transform crop+rotate",
 
-   f"python test_fsl_traffic.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --model_path {fsl_paths[10]}  --add_transform crop+rotate",
-   f"python test_fsl_traffic.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[11]} --add_transform crop+rotate",
-   f"python test_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --num_eval_episodes 10 --model_path {fsl_paths[4]} --add_transform crop+rotate",
-   f"python test_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[5]} --add_transform crop+rotate",
+   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
+   f"python train_fsl.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
+   f"python test_fsl_traffic.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --model_path {fsl_paths[8]}  --add_transform original",
+   f"python test_fsl_traffic.py --model_class FEAT --backbone_class ConvNet --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[9]} --add_transform original",
+
+   # f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
+   # f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5 --use_euclidean", 
+
+   # f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --max_epoch 200 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
+   # f"python train_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --max_epoch 200 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
+
+
+
+   # f"python test_fsl_traffic.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --model_path {fsl_paths[10]}  --add_transform original",
+   # f"python test_fsl_traffic.py --model_class DeepSet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[11]} --add_transform original",
+   # f"python test_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --num_eval_episodes 10 --model_path {fsl_paths[4]} --add_transform crop+rotate",
+   # f"python test_fsl.py --model_class DeepSet --backbone_class ConvNet --dataset Animals --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[5]} --add_transform crop+rotate",
 
    # f"python test_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 50 --model_path {fsl_paths[1]} --add_transform crop+rotate",
    # f"python test_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset Animals --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[1]} --add_transform crop+rotate",
-   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 50 --model_path {fsl_paths[3]}",
-   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[3]}",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 50 --model_path {fsl_paths[3]} --add_transform original",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class Res12 --dataset Traffic --num_eval_episodes 10 --use_euclidean --model_path {fsl_paths[3]} --add_transform original",
 ]
 
 

@@ -164,7 +164,7 @@ class FUNITModel(nn.Module):
             nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
             nb_features_trans = nb_features.transpose(1,0)
             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
-        if random == False:
+        if True or random == False:
             scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
             idxs = idxs.long()
             selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)

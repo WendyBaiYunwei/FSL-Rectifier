@@ -184,9 +184,9 @@ def get_command_line_parser():
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--random_picker', action='store_true', default=True)
     parser.add_argument('--qry_expansion', type=int, default=0)
-    parser.add_argument('--spt_expansion', type=int, default=1)
+    parser.add_argument('--spt_expansion', type=int, default=2)
     parser.add_argument('--model_path', type=str)
-    parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate'], default=None)
+    parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
     
     return parser
 
@@ -200,7 +200,8 @@ def get_augmentations(img, expansion, type, get_img=False):
     transformations = {
         'affine': transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75)),
         'crop+rotate': crop_rotate,
-        'color': transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
+        'color': transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        'original': transforms.Resize(128)
     }
     for expansion_i in range(expansion):
         augmented_image = transformations[type](img)

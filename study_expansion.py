@@ -81,7 +81,7 @@ for i, data in enumerate(loader):
     label = data[1].detach().cpu()
 
     expansions = trainer.model.pick_traffic(picker, img, test_loader,\
-             expansion_size=5, get_img = True, random=False, img_id='', get_original=True, type='funit')
-    write_1images(expansions, './analysis', postfix=f'{args.dataset}_expansions_{i}')
-    if i == 2:
+             expansion_size=5, get_img=True, random=True, img_id='', get_original=True, type='funit')
+    write_1images(expansions, './analysis', postfix=f'{args.dataset}_expansions_{i}_random')
+    if i == 10:
         exit()
