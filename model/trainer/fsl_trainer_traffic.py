@@ -9,7 +9,7 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.FUNIT.utils import get_train_loaders, get_config, get_dichomy_loaders, loader_from_list
+from model.FUNIT.utils import get_train_loaders, get_config, get_dichomy_loader, loader_from_list, write_1images
 from model.utils import (
     pprint, ensure_path,
     Averager, Timer, count_acc, one_hot,
@@ -22,23 +22,33 @@ from tqdm import tqdm
 class FSLTrainer(Trainer):
     def __init__(self, args, config):
         super().__init__(args)
-        loaders = get_dichomy_loaders(config)
         self.config = config
 
-        self.test_loader_funit = loaders[1]
-        self.test_loader_fsl = loaders[2]
-
-        conf = get_config('/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml') ## slack shift
-        self.test_loader_funit = loader_from_list(
-            root=conf['data_folder_test'],
-            file_list=conf['data_list_test'],
-            batch_size=conf['pool_size'],
+        # self.test_loader_transform = loaders[1]
+        # self.test_loader_fsl = loaders[2]
+        # conf = get_config('/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml') ## slack shift
+        self.test_loader_fsl = get_dichomy_loader(
+            episodes=config['max_iter'],
+            root=config['data_folder_test'],
+            file_list=config['data_list_test'],
+            batch_size=config['batch_size'],
             new_size=140,
             height=128,
             width=128,
             crop=True,
             num_workers=4,
-            dataset=conf['dataset'])
+            n_cls=config['way_size'],
+            dataset='Animals')
+        self.test_loader_transform = loader_from_list(
+            root=config['data_folder_test'],
+            file_list=config['data_list_test'],
+            batch_size=config['pool_size'],
+            new_size=140,
+            height=128,
+            width=128,
+            crop=True,
+            num_workers=4,
+            dataset='Traffic')
         # self.train_loader, self.val_loader, self.test_loader = get_dataloader(args)
         self.model, self.para_model = prepare_model(args)
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
@@ -224,13 +234,11 @@ class FSLTrainer(Trainer):
                 else:
                     data = batch[0]
                 new_data = torch.empty(data.shape).cuda()
-                # print(new_data.shape)
-                
                 # get baseline
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = trainer.model.pick_traffic(picker, img,\
-                                 self.test_loader_funit, expansion_size=0, random=args.random_picker)
+                                 self.test_loader_transform, expansion_size=0, random=True)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
@@ -337,14 +345,18 @@ class FSLTrainer(Trainer):
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
             if type == 'funit' or type == 'mix-up':
-                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_funit, \
+                # expansion_list = [img]
+                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_transform, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
+                # expansion_list.extend(class_expansions)
+                # write_1images(expansion_list, './analysis', postfix=f'traffic_test_{class_i}')
             elif type == 'random-mix-up' or type == 'random-funit':
-                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_funit, \
+                class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_transform, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
             expanded[class_i] = class_expansions
+
         expanded = expanded.swapaxes(0, 1).flatten(end_dim=1)
         # expanded = expanded.reshape(5 * expansion, data.shape[1], data.shape[2], data.shape[3])
         return expanded
