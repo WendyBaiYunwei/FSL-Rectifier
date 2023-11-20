@@ -156,7 +156,7 @@ def get_command_line_parser():
     parser.add_argument('--eval_way', type=int, default=5)
     parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--eval_shot', type=int, default=1)
-    parser.add_argument('--query', type=int, default=15)
+    parser.add_argument('--query', type=int, default=5)
     parser.add_argument('--eval_query', type=int, default=15)
     parser.add_argument('--balance', type=float, default=0)
     parser.add_argument('--temperature', type=float, default=1)

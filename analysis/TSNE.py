@@ -68,15 +68,15 @@ if __name__ == "__main__":
         subplot.scatter(centroid[0], centroid[1], c='red', marker='v', s=250, label=f'Centroid of M')
         expansion_idx = (labels == 999).reshape(-1)
         expansions = postns[expansion_idx]
-        subplot.scatter(expansions[0], expansions[1], c='brown', marker='^', s=20, label='Expansions of P', alpha=1)
+        subplot.scatter(expansions[0], expansions[1], c='brown', marker='^', s=20, label='Augmentations of P', alpha=1)
         expansion_mean = np.mean(expansions, axis=0)
-        subplot.scatter(expansion_mean[0], expansion_mean[1], c='orchid', marker='*', s=300, label=f'Mean Expansion')
+        subplot.scatter(expansion_mean[0], expansion_mean[1], c='orchid', marker='*', s=300, label=f'Mean Augmentation')
         x = np.array([centroid[0], random_pt_x])
         y = np.array([centroid[1], random_pt_y])
         subplot.plot(x, y, marker='+', linestyle='-', c='lime', label='P to Centroid') # line between point and centroid
         x = np.array([centroid[0], expansion_mean[0]])
         y = np.array([centroid[1], expansion_mean[1]])
-        subplot.plot(x, y, marker='d', linestyle='-', c='darkorange', label='Mean Expansion to Centroid') # line between centroid and expansion mean
+        subplot.plot(x, y, marker='d', linestyle='-', c='darkorange', label='Mean Augmentation to Centroid') # line between centroid and expansion mean
         subplot.set_xticks([])
         subplot.set_yticks([])
         # if img_idx <= 5:

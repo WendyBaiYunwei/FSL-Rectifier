@@ -61,8 +61,11 @@ class FSLTrainer(Trainer):
     
     def train(self):
         args = self.args
-        
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['state_dict']
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+        if 'state_dict' in loaded_dict:
+            loaded_dict = loaded_dict['state_dict']
+        else:
+            loaded_dict = loaded_dict['params']
         new_params = {}
         keys = list(loaded_dict.keys())
         # print(keys)
@@ -198,7 +201,11 @@ class FSLTrainer(Trainer):
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['params']
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+        if 'state_dict' in loaded_dict:
+            loaded_dict = loaded_dict['state_dict']
+        else:
+            loaded_dict = loaded_dict['params']
         new_params = {}
         keys = list(loaded_dict.keys())
         # print(keys)
@@ -220,7 +227,8 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
         # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
-        i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit'}
+        # i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit', 4:'affine'}
+        i2name = {0: 'funit'}
         # i2name = {0: 'color'}
         expansion_res = []
         for i in i2name:
@@ -307,22 +315,22 @@ class FSLTrainer(Trainer):
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
         #             exit()
                     original_qry = new_data[5:, :, :, :]
-        #             new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
-        #                 cuda()
-        #             k = 0
-        #             if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
-        #                 for class_chunk_i in range(5, len(data), 5):
-        #                     class_chunk = data[class_chunk_i:class_chunk_i+5]
-        #                     new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
-        #                     k += 1
-        #             else:# use restructured data
-        #                 for class_chunk_i in range(5, len(new_data), 5):
-        #                     class_chunk = new_data[class_chunk_i:class_chunk_i+5]
-        #                     new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
-        #                     k += 1
-        #             assert k == old_qry
-        #             new_qries = new_qries.flatten(end_dim=1)
-                    expanded_data = torch.cat([combined_spt, original_qry], dim=0)
+                    new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
+                        cuda()
+                    k = 0
+                    if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                        for class_chunk_i in range(5, len(data), 5):
+                            class_chunk = data[class_chunk_i:class_chunk_i+5]
+                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
+                            k += 1
+                    else:# use restructured data
+                        for class_chunk_i in range(5, len(new_data), 5):
+                            class_chunk = new_data[class_chunk_i:class_chunk_i+5]
+                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
+                            k += 1
+                    assert k == old_qry
+                    new_qries = new_qries.flatten(end_dim=1)
+                    expanded_data = torch.cat([combined_spt, original_qry, new_qries], dim=0)
                     if self.args.add_transform:
                         logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion*2)
                     else:
@@ -354,7 +362,7 @@ class FSLTrainer(Trainer):
             result_str += f'{name} Test acc={va} + {vap}\n'
             # print(f'{name} Test acc={va} + {vap}\n')
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record3.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-{args.add_transform}-{args.spt_expansion}-record.txt', 'w') as file:
             file.write(result_str)
         return vl, va, vap
     

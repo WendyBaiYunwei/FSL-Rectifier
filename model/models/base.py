@@ -47,6 +47,7 @@ class FewShotModel(nn.Module):
             new_spt = spt_embs.mean(dim=0)
 
             new_qry = instance_embs[spt_cutoff:]
+            new_qry = new_qry.reshape(1+qry_expansion, self.args.eval_query * 5, -1).mean(0)
             # eval_query = self.args.eval_query
             # new_qry = qry_embs.reshape(eval_query + qry_expansion, 5, -1)
             # new_qry = new_qry.mean(dim=0)

@@ -11,9 +11,10 @@ import torch
 from model.models.feat import FEAT
 
 # get 100 randomly sampled animals embeddings
-sample_iters = 1000#200 * 10
+sample_iters = 2000#200 * 10
 # path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
-path = '/home/yunwei/new/FSL-Rectifier/checkpoints/Animals-FEAT-ConvNet-05w01s15q-DIS/20_0.5_lr0.01mul10_step_T11T21_b0_bsz080-NoAug/epoch-last.pth'
+# path = '/home/yunwei/new/FSL-Rectifier/checkpoints/Animals-FEAT-ConvNet-05w01s15q-DIS/20_0.5_lr0.01mul10_step_T11T21_b0_bsz080-NoAug/epoch-last.pth'
+path = '/home/yunwei/new/FSL-Rectifier/checkpoints/Animals-ProtoNet-ConvNet-05w01s15q-SIM/20_0.5_lr0.01mul10_step_T11T21_b0_bsz080-NoAug/epoch-last.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--max_epoch', type=int, default=40) # 40 for resnet, 10 for convnet

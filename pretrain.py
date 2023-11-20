@@ -60,7 +60,7 @@ if __name__ == '__main__':
         args.num_class = 119
     else:
         config = get_config('./FEAT_traffic.yaml')
-        args.num_class = 61
+        args.num_class = 63
     config['max_iter'] = args.max_epoch
     config['batch_size'] = args.batch_size
     if args.backbone_class == 'Res12':
@@ -163,7 +163,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-        if epoch % 1 == 0:
+        if epoch % 5 == 0:
             save_model(f'pretrain_{args.dataset}')
             save_checkpoint(True)
 

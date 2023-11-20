@@ -188,7 +188,12 @@ class FSLTrainer(Trainer):
         # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
         # path = '/home/yunwei/new/FSL-Rectifier/Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
         # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')['params']
+        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+        if 'params' in loaded_dict:
+            loaded_dict = loaded_dict['params']
+        else:
+            loaded_dict = loaded_dict['state_dict']
+        # loaded_dict = torch.load(args.model_path, map_location='cuda:0')['params']
         new_params = {}
         keys = list(loaded_dict.keys())
         # print(keys)
@@ -201,6 +206,7 @@ class FSLTrainer(Trainer):
                 new_params[key] = loaded_dict[key]
             else:
                 new_params[key] = self.model.state_dict()[key]
+                exit()
         # assert key_i == len(keys) - 3
         self.model.load_state_dict(new_params) ## arg path
         self.model.eval()
@@ -209,7 +215,7 @@ class FSLTrainer(Trainer):
         # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
         # i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit'}
         # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        i2name = {0: 'funit'}
+        i2name = {0: 'funit', 1: 'affine', 2:'color', 3:'crop+rotate'}
         expansion_res = []
         for i in i2name:
             expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
@@ -238,7 +244,7 @@ class FSLTrainer(Trainer):
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = trainer.model.pick_traffic(picker, img,\
-                                 self.test_loader_transform, expansion_size=0, random=True)
+                                 self.test_loader_transform, expansion_size=0, random=False)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
@@ -332,7 +338,7 @@ class FSLTrainer(Trainer):
             result_str += f'{name} Test acc={va} + {vap}\n'
             # print(f'{name} Test acc={va} + {vap}\n')
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-record3.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-{args.spt_expansion}-record.txt', 'w') as file:
             file.write(result_str)
 
         return vl, va, vap
@@ -352,7 +358,7 @@ class FSLTrainer(Trainer):
                 # write_1images(expansion_list, './analysis', postfix=f'traffic_test_{class_i}')
             elif type == 'random-mix-up' or type == 'random-funit':
                 class_expansions = self.trainer.model.pick_traffic(self.picker, img, self.test_loader_transform, \
-                        expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
+                        expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
             expanded[class_i] = class_expansions

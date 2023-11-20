@@ -159,17 +159,18 @@ class FUNITModel(nn.Module):
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
         assert len(candidate_neighbours) > expansion_size
-        with torch.no_grad():
-            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
-            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
-            nb_features_trans = nb_features.transpose(1,0)
-            scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
-        if True or random == False:
+        
+        if expansion_size > 0 and random == False:
+            with torch.no_grad():
+                qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+                nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
+                nb_features_trans = nb_features.transpose(1,0)
+                scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
             scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
             idxs = idxs.long()
             selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
             selected_nbs = selected_nbs[1:expansion_size+1, :, :, :]
-        else:
+        elif expansion_size > 0:
             selected_nbs = candidate_neighbours[1:expansion_size+1, :, :, :]
         class_code = self.compute_k_style(qry, 1)
         translated_qry = self.translate_simple(qry, class_code)
@@ -199,7 +200,7 @@ class FUNITModel(nn.Module):
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
-        assert len(candidate_neighbours) > expansion_size
+        assert len(candidate_neighbours) >= expansion_size
         with torch.no_grad():
             qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
             nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
