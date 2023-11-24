@@ -16,7 +16,7 @@ cudnn.benchmark = True
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='/home/yunwei/new/FSL-Rectifier/picker.yaml',
+                    default='/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -34,21 +34,12 @@ opts = parser.parse_args()
 
 # Load experiment setting
 config = get_config(opts.config)
-max_iter = config['max_iter']
-# Override the batch size if specified.
-if opts.batch_size != 0:
-    config['batch_size'] = opts.batch_size
+max_iter = config['max_iter'] + 1000
 
 trainer = FUNIT_Trainer(config)
 trainer.cuda()
-if opts.multigpus:
-    ngpus = torch.cuda.device_count()
-    config['gpus'] = ngpus
-    print("Number of GPUs: %d" % ngpus)
-    trainer.model = torch.nn.DataParallel(
-        trainer.model, device_ids=range(ngpus))
-else:
-    config['gpus'] = 1
+# trainer.model.dis = trainer.model.dis.to(device='cuda:1')
+config['gpus'] = 1
 
 loaders = get_train_loaders(config)
 train_loader = loaders[0]
@@ -78,11 +69,14 @@ while True:
     for it, (co_data, cl_data) in enumerate(zip(train_loader, test_loader)):
         # data (batch, way, 3, 128, 128)
         # co_data, cl_data = reorganize_data(data)
+        # print(next(trainer.model.gen.parameters())[0].device)
+        # print(co_data[0].device)
+        # exit()
         with Timer("Elapsed time in update: %f"):
-            loss = trainer.picker_update(co_data, cl_data, config)
+            loss = trainer.traffic_picker_update(co_data, cl_data, config)
             # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
             #                            opts.multigpus)
-            torch.cuda.synchronize()
+            # torch.cuda.synchronize()
             print('loss: %.4f' % (loss))
 
         if (iterations + 1) % config['log_iter'] == 0:

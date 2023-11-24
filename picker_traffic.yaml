@@ -3,20 +3,20 @@
 # (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
 # logger options
-image_save_iter: 2500         # How often do you want to save output images during training 2500
-image_display_iter: 10000       # How often do you want to display output images during training 10000
-snapshot_save_iter: 500      # How often do you want to save trained models 2500
-log_iter: 1                   # How often do you want to log the training stats
+image_save_iter: 30000         # How often do you want to save output images during training 2500
+image_display_iter: 100       # How often do you want to display output images during training 10000
+snapshot_save_iter: 25000      # How often do you want to save trained models 2500
+log_iter: 100                   # How often do you want to log the training stats
 
 # optimization options
-max_iter: 101000              # maximum number of training iterations 110000
+max_iter: 100000              # maximum number of training iterations 110000
 weight_decay: 0.0001          # weight decay
 lr_gen: 0.0001                # learning rate for the generator
 lr_dis: 0.0001                # learning rate for the discriminator
 init: kaiming                 # initialization [gaussian/kaiming/xavier/orthogonal]
 gan_w: 1                      # weight of adversarial loss for image translation
 fm_w: 1                       # weight on distance between gan features of style and translated image
-r_w: 0.1                      # weight of image reconstruction loss
+r_w: 0.5                      # weight of image reconstruction loss
 
 # model options
 gen:
@@ -43,10 +43,10 @@ new_size: 140                 # first resize the shortest image side to this siz
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
 data_folder_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
-data_list_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_train_round.txt
+data_list_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_train.txt
 data_folder_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
 data_list_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_test.txt
-data_train_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_train_class_names_round.txt
+data_train_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_train_class_names.txt
 data_test_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_test_class_names.txt
 
 # test options:

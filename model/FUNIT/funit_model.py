@@ -79,6 +79,19 @@ class FUNITModel(nn.Module):
             loss *= 0.01
             loss.backward()
             return loss
+        elif mode == 'traffic_picker_update':
+            qry_features = self.gen.enc_content(xb).mean((2,3)) # batch, q, feature_size
+            nb_features = self.gen.enc_content(xa).mean((2,3)) # qries and nbs are of different classes
+            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0)) # q qries, n neighbors
+            matrix_reverse = torch.mm(nb_features, qry_features.transpose(0,1))
+            scores_forward = self.get_traffic_score(qry = xb, nb = xa)
+            scores_reverse = self.get_traffic_score(qry = xa, nb = xb)
+            loss_forward = recon_criterion(matrix_forward, scores_forward) # the matrix represents kl divergence
+            loss_reverse = recon_criterion(matrix_reverse, scores_reverse)
+            loss = loss_forward + loss_reverse * 0.5
+            loss *= 0.01
+            loss.backward()
+            return loss
         else:
             assert 0, 'Not support operation'
 
@@ -147,31 +160,83 @@ class FUNITModel(nn.Module):
         # and is the generation similar to the right class?
         return fake_degree
     
+    def get_traffic_score(self, qry, nb):
+        with torch.no_grad():
+            s_xb = self.gen.enc_class_model(nb.detach())
+            c_xa = self.gen.enc_content(qry.detach())
+            translation = self.gen.decode(c_xa, s_xb)
+            fake_degree = self.dis.get_quality(qry, translation)# how real the generation appears
+        # and is the generation similar to the right class?
+        return fake_degree
+    
     # optionally returns qry expansions of size: (expansion_size + 1, 3, h, w)
     # 'pool_size' copies of candidate neighbours are randomly sampled
     # translations are conducted only with the best 'expansion_size' candidates
     # best candidates are defined as those with the highest vector dot product
     # the vectors are features learnt by picker
-    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    # def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False,\
+    #      img_id='', get_original=True, type='funit'): # only one qry
+    #     if expansion_size == 0:
+    #         get_original = True
+    #     # pool size should be <= class numbers ##slack
+    #     candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+    #     candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
+    #     assert len(candidate_neighbours) > expansion_size
+        
+    #     if expansion_size > 0 and random == False:
+    #         with torch.no_grad():
+    #             qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+    #             nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
+    #             nb_features_trans = nb_features.transpose(1,0)
+    #             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
+    #         scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
+    #         idxs = idxs.long()
+    #         selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
+    #         selected_nbs = selected_nbs[1:expansion_size+1, :, :, :]
+    #     elif expansion_size > 0:
+    #         selected_nbs = candidate_neighbours[1:expansion_size+1, :, :, :]
+    #     class_code = self.compute_k_style(qry, 1)
+    #     translated_qry = self.translate_simple(qry, class_code)
+    #     if get_original == True:
+    #         translations = [translated_qry]
+    #     else:
+    #         translations = []
+        
+        
+    #     for selected_i in range(expansion_size):
+    #         nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
+    #         if type == 'funit' or type == 'random-funit':
+    #             class_code = self.compute_k_style(nb, 1)
+    #             translation = self.translate_simple(qry, class_code)
+    #         elif type == 'mix-up' or type == 'random-mix-up':
+    #             nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
+    #             translation = 0.5 * (nb + translated_qry)
+    #         translations.append(translation)
+    #     if get_img == True:
+    #         return translations
+    #     else:
+    #         return torch.stack(translations).squeeze()
+
+    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img=False, random=False, img_id='', get_original=True, type='funit'): # only one qry
         if expansion_size == 0:
             get_original = True
         # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
-        assert len(candidate_neighbours) > expansion_size
-        
-        if expansion_size > 0 and random == False:
-            with torch.no_grad():
-                qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
-                nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
-                nb_features_trans = nb_features.transpose(1,0)
-                scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
+        assert len(candidate_neighbours) >= expansion_size
+        with torch.no_grad():
+            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
+            nb_features_trans = nb_features.transpose(1,0)
+            scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
+        if random == False:
             scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
             idxs = idxs.long()
             selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
-            selected_nbs = selected_nbs[1:expansion_size+1, :, :, :]
-        elif expansion_size > 0:
-            selected_nbs = candidate_neighbours[1:expansion_size+1, :, :, :]
+            selected_nbs = selected_nbs[:expansion_size, :, :, :]
+        else:
+            selected_nbs = candidate_neighbours[:expansion_size, :, :, :]
+
         class_code = self.compute_k_style(qry, 1)
         translated_qry = self.translate_simple(qry, class_code)
         if get_original == True:
@@ -189,11 +254,12 @@ class FUNITModel(nn.Module):
                 nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
                 translation = 0.5 * (nb + translated_qry)
             translations.append(translation)
+
         if get_img == True:
             return translations
         else:
             return torch.stack(translations).squeeze()
-    
+
     def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
         if expansion_size == 0:
             get_original = True

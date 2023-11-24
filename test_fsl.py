@@ -22,7 +22,7 @@ if __name__ == '__main__':
     
     pprint(vars(args))
 
-    from model.trainer.fsl_trainer import FSLTrainer
+    from model.trainer.fsl_trainer_buffer import FSLTrainer
 
     set_gpu(args.gpu)
     trainer = FSLTrainer(args, config)

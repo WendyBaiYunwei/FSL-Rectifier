@@ -14,17 +14,44 @@ from model.FUNIT.trainer import FUNIT_Trainer
 
 expansion_size = 3
 
-config = get_config('./picker.yaml')
+config = get_config('./picker_traffic.yaml')
 config['batch_size'] = 1
 
 funit = FUNIT_Trainer(config)
 funit.cuda()
-funit.load_ckpt('animal_pretrained.pt')
+if config['dataset'] == 'Animals':
+    funit.load_ckpt('animal_pretrained.pt')
+else:
+    funit.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
 funit.eval()
 
 picker = FUNIT_Trainer(config)
 picker.cuda()
-picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+if config['dataset'] == 'Animals':
+    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+    picker_loader = loader_from_list(
+        root=config['data_folder_train'],
+        file_list=config['data_list_train'],
+        batch_size=config['pool_size'],
+        new_size=140,
+        height=128,
+        width=128,
+        crop=True,
+        num_workers=4,
+        dataset=config['dataset'])
+else:
+    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
+    picker_loader = loader_from_list(
+        root=config['data_folder_test'],
+        file_list=config['data_list_test'],
+        batch_size=config['pool_size'],
+        new_size=140,
+        height=128,
+        width=128,
+        crop=True,
+        num_workers=4,
+        dataset=config['dataset'])
+
 picker.eval()
 picker = picker.model.gen
 
@@ -38,18 +65,9 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset=config['dataset'])
+    dataset='Animals')
 
-picker_loader = loader_from_list(
-    root=config['data_folder_train'],
-    file_list=config['data_list_train'],
-    batch_size=config['pool_size'],
-    new_size=140,
-    height=128,
-    width=128,
-    crop=True,
-    num_workers=4,
-    dataset=config['dataset'])
+
 
 for i, data in enumerate(testloader):
     if i % 10 == 0:
@@ -63,7 +81,8 @@ for i, data in enumerate(testloader):
              expansion_size=expansion_size, random=False, get_original=True, type='funit')
     else:
         ## pick traffic
-        exit()
+        imgs = funit.model.pick_traffic(picker, original_img, picker_loader,\
+             expansion_size=expansion_size, random=False, get_original=True, type='funit')
     # save image
     for selected_i in range(expansion_size + 1):
         translation = imgs[selected_i]
@@ -77,5 +96,6 @@ for i, data in enumerate(testloader):
             output_img.save(\
                 f'{original_path}_recon.jpg', 'JPEG', quality=99)
         else:
+            # print(f'{original_path}_trans{selected_i}.jpg')
             output_img.save(\
                 f'{original_path}_trans{selected_i}.jpg', 'JPEG', quality=99)

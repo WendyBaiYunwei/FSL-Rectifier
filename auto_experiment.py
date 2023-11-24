@@ -43,6 +43,7 @@ fsl_paths = [
 #    f"python test_fsl.py --model_class ProtoNet--backbone_class Res12 --dataset Traffic --num_eval_episodes 50 --use_euclidean --model_path {paths[3]}",
 # ]
 
+# animals
 commands = [
    # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {paths[0]} --add_transform crop+rotate --spt_expansion 1 --use_euclidean",
    # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {paths[0]} --spt_expansion 1",
@@ -57,7 +58,15 @@ commands = [
    # ProtoNet
    # f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 40 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5", 
    # f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --max_epoch 40 --episodes_per_epoch 100 --model_path {paths[0]} --lr 0.01 --gamma 0.5 --use_euclidean", 
-   f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {paths[0]} --spt_expansion 4",
+   
+   
+   
+   ## latest
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --qry_expansion 3 --spt_expansion 0",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --qry_expansion 3 --spt_expansion 3",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --add_transform crop+rotate",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --add_transform crop+rotate",
    # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --use_euclidean --model_path {fsl_paths[1]} --add_transform crop+rotate",
    
    # f"python train_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --max_epoch 30 --episodes_per_epoch 100 --model_path {paths[2]} --lr 0.01 --gamma 0.5", 
@@ -109,6 +118,76 @@ commands = [
       # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {paths[1]} --add_transform original --spt_expansion 3 --use_euclidean",
       # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 50 --model_path {paths[1]} --add_transform original --spt_expansion 4 --use_euclidean",
 # ]
+
+# traffic
+commands = [
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 1",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 2",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 3",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 0",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 1",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 2",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 3",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 0",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 1",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 2",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 3",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 0",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 1",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 2",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 3",
+
+
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 0 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 0 --add_transform original --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 0 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 2 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 0 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 3 --qry_expansion 3 --use_euclidean",
+
+
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 1",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 2",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 3",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 0",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 1",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 2",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 3",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 0",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 1",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 2",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 3",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 0",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 1",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 2",
+   f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 3",
+
+
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 0 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 0 --use_euclidean --add_transform original",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 1 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 0 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 2 --qry_expansion 3 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 0 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 1 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 2 --use_euclidean",
+   # f"python test_fsl_traffic.py --model_class ProtoNet --backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[2]} --spt_expansion 3 --qry_expansion 3 --use_euclidean",
+]
 
 for command in commands:
    print(f"Command: {command}")

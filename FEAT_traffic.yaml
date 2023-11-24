@@ -28,7 +28,7 @@ new_size: 140                 # first resize the shortest image side to this siz
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
 data_folder_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
-data_list_train: /mnt/hdd/yw/animals/fsl_rectifier/dataset/traffic_signs_list_train.txt
+data_list_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_train.txt
 data_folder_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
 data_list_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_test.txt
 data_train_classes: /mnt/hdd/yw/animals/fsl_rectifier/dataset/traffic_signs_train_class_names.txt

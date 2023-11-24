@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
-from model.FUNIT.data import ImageLabelFilelist
+from model.FUNIT.data import ImageLabelFilelist, default_loader
 import numpy as np
 
 
@@ -39,19 +39,7 @@ def loader_from_list(
         return_paths=False,
         drop_last=True,
         dataset='Animals'):
-    transform_list = [transforms.ToTensor(),
-                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    if center_crop:
-        transform_list = [transforms.CenterCrop((height, width))] + \
-                         transform_list if crop else transform_list
-    else:
-        transform_list = [transforms.RandomCrop((height, width))] + \
-                         transform_list if crop else transform_list
-    transform_list = [transforms.Resize(new_size)] + transform_list \
-        if new_size is not None else transform_list
-    if not center_crop:
-        transform_list = [transforms.RandomHorizontalFlip()] + transform_list
-    transform = transforms.Compose(transform_list)
+    transform = get_transform(new_size, height, width)
 
     dataset = ImageLabelFilelist(root,
                                 file_list,
@@ -121,10 +109,7 @@ def get_dichomy_loader(
         n_cls=2,
         dataset='Animals'):
 
-    transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
-            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-
-    transform = transforms.Compose(transform_list)
+    transform = get_transform(new_size, height, width)
     dataset = ImageLabelFilelist(root,
                                  file_list,
                                  transform,
@@ -263,6 +248,7 @@ def get_dichomy_loaders(conf):
             crop=True,
             num_workers=num_workers,
             n_cls=conf['way_size'],
+            return_paths=True,
             dataset=conf['dataset'])
 
     train_loader_fsl = get_dichomy_loader(
@@ -300,6 +286,36 @@ def get_pretrain_loaders(conf):
             dataset=conf['dataset'])
 
     return train_loader
+
+def get_transform(new_size, height, width):
+    transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
+            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+
+    transform = transforms.Compose(transform_list)
+    return transform
+
+
+def get_recon(conf, img_name):
+    img_name = '.'.join(img_name.split('.')[:-1])
+    name = img_name + f'_recon.jpg'
+    image = default_loader(name)
+    transform = get_transform(conf['new_size'],\
+         conf['crop_image_height'], conf['crop_image_width'])
+    image = transform(image).cuda()
+    return image # 1,3,128,128
+
+def get_trans(conf, img_name, expansion_size):
+    images = torch.empty(expansion_size, 3, conf['crop_image_height'],\
+        conf['crop_image_width']).cuda()
+    img_name = '.'.join(img_name.split('.')[:-1])
+    transform = get_transform(conf['new_size'],\
+        conf['crop_image_height'], conf['crop_image_width'])
+    for i in range(1, expansion_size + 1):
+        name = img_name + f'_trans{i}.jpg'
+        image = default_loader(name)
+        image = transform(image)
+        images[i-1] = image
+    return images
 
 def get_config(config):
     with open(config, 'r') as stream:
