@@ -190,7 +190,6 @@ def get_command_line_parser():
     
     return parser
 
-# {0: 'perspective', 1: 'crop+rotate', 2: 'color'}
 def get_augmentations(img, expansion, type, get_img=False):
     expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
     crop_rotate = transforms.Compose([
@@ -210,18 +209,3 @@ def get_augmentations(img, expansion, type, get_img=False):
             image = F.to_pil_image(augmented_image)
             image.save(f'augmented_image_{expansion_i}.jpg')
     return expansions
-
-
-def reorganize_data(data):
-    img = data[0]
-    series = torch.arange(data[0].shape[0])
-    idx1 = series % 2 == 0
-    idx2 = series % 2 == 1
-    co_img = img[idx1, :, :, :]
-    cl_img = img[idx2, :, :, :]
-    labels = data[1]
-    co_y = labels[idx1]
-    cl_y = labels[idx2]
-    co_data = (co_img, co_y)
-    cl_data = (cl_img, cl_y)
-    return co_data, cl_data

@@ -67,26 +67,26 @@ class FUNITModel(nn.Module):
             acc = 0.5 * (acc_f + acc_r)
             return l_total, l_fake_p, l_real_pre, l_reg_pre, acc
         elif mode == 'picker_update':
-            qry_features = self.gen.enc_content(xb).mean((2,3)) # batch, q, feature_size
-            nb_features = self.gen.enc_content(xa).mean((2,3)) # qries and nbs are of different classes
-            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0)) # q qries, n neighbors
+            qry_features = self.gen.enc_content(xb).mean((2,3))
+            nb_features = self.gen.enc_content(xa).mean((2,3))
+            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0))
             matrix_reverse = torch.mm(nb_features, qry_features.transpose(0,1))
             scores_forward = self.get_score(qry = xb, nb = xa)
             scores_reverse = self.get_score(qry = xa, nb = xb)
-            loss_forward = recon_criterion(matrix_forward, scores_forward) # the matrix represents kl divergence
+            loss_forward = recon_criterion(matrix_forward, scores_forward)
             loss_reverse = recon_criterion(matrix_reverse, scores_reverse)
             loss = loss_forward + loss_reverse * 0.5
             loss *= 0.01
             loss.backward()
             return loss
         elif mode == 'traffic_picker_update':
-            qry_features = self.gen.enc_content(xb).mean((2,3)) # batch, q, feature_size
-            nb_features = self.gen.enc_content(xa).mean((2,3)) # qries and nbs are of different classes
-            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0)) # q qries, n neighbors
+            qry_features = self.gen.enc_content(xb).mean((2,3))
+            nb_features = self.gen.enc_content(xa).mean((2,3))
+            matrix_forward = torch.mm(qry_features, nb_features.transpose(1,0))
             matrix_reverse = torch.mm(nb_features, qry_features.transpose(0,1))
             scores_forward = self.get_traffic_score(qry = xb, nb = xa)
             scores_reverse = self.get_traffic_score(qry = xa, nb = xb)
-            loss_forward = recon_criterion(matrix_forward, scores_forward) # the matrix represents kl divergence
+            loss_forward = recon_criterion(matrix_forward, scores_forward)
             loss_reverse = recon_criterion(matrix_reverse, scores_reverse)
             loss = loss_forward + loss_reverse * 0.5
             loss *= 0.01
@@ -153,11 +153,9 @@ class FUNITModel(nn.Module):
     def get_score(self, qry, nb):
         with torch.no_grad():
             c_xa = self.gen.enc_content(nb.detach())
-            # s_xa = self.gen.enc_class_model(xa)
             s_xb = self.gen.enc_class_model(qry.detach())
             translation = self.gen.decode(c_xa, s_xb)
-            fake_degree = self.dis.get_quality(qry, translation)# how real the generation appears
-        # and is the generation similar to the right class?
+            fake_degree = self.dis.get_quality(qry, translation)
         return fake_degree
     
     def get_traffic_score(self, qry, nb):
@@ -165,62 +163,13 @@ class FUNITModel(nn.Module):
             s_xb = self.gen.enc_class_model(nb.detach())
             c_xa = self.gen.enc_content(qry.detach())
             translation = self.gen.decode(c_xa, s_xb)
-            fake_degree = self.dis.get_quality(qry, translation)# how real the generation appears
-        # and is the generation similar to the right class?
+            fake_degree = self.dis.get_quality(qry, translation)
         return fake_degree
-    
-    # optionally returns qry expansions of size: (expansion_size + 1, 3, h, w)
-    # 'pool_size' copies of candidate neighbours are randomly sampled
-    # translations are conducted only with the best 'expansion_size' candidates
-    # best candidates are defined as those with the highest vector dot product
-    # the vectors are features learnt by picker
-    # def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False,\
-    #      img_id='', get_original=True, type='funit'): # only one qry
-    #     if expansion_size == 0:
-    #         get_original = True
-    #     # pool size should be <= class numbers ##slack
-    #     candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
-    #     candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
-    #     assert len(candidate_neighbours) > expansion_size
-        
-    #     if expansion_size > 0 and random == False:
-    #         with torch.no_grad():
-    #             qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
-    #             nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
-    #             nb_features_trans = nb_features.transpose(1,0)
-    #             scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
-    #         scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
-    #         idxs = idxs.long()
-    #         selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
-    #         selected_nbs = selected_nbs[1:expansion_size+1, :, :, :]
-    #     elif expansion_size > 0:
-    #         selected_nbs = candidate_neighbours[1:expansion_size+1, :, :, :]
-    #     class_code = self.compute_k_style(qry, 1)
-    #     translated_qry = self.translate_simple(qry, class_code)
-    #     if get_original == True:
-    #         translations = [translated_qry]
-    #     else:
-    #         translations = []
-        
-        
-    #     for selected_i in range(expansion_size):
-    #         nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
-    #         if type == 'funit' or type == 'random-funit':
-    #             class_code = self.compute_k_style(nb, 1)
-    #             translation = self.translate_simple(qry, class_code)
-    #         elif type == 'mix-up' or type == 'random-mix-up':
-    #             nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
-    #             translation = 0.5 * (nb + translated_qry)
-    #         translations.append(translation)
-    #     if get_img == True:
-    #         return translations
-    #     else:
-    #         return torch.stack(translations).squeeze()
+ 
 
-    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img=False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img=False, random=False, img_id='', get_original=True, type='funit'):
         if expansion_size == 0:
             get_original = True
-        # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
         assert len(candidate_neighbours) >= expansion_size
@@ -244,7 +193,6 @@ class FUNITModel(nn.Module):
         else:
             translations = []
         
-        
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
             if type == 'funit' or type == 'random-funit':
@@ -260,10 +208,9 @@ class FUNITModel(nn.Module):
         else:
             return torch.stack(translations).squeeze()
 
-    def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): # only one qry
+    def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): 
         if expansion_size == 0:
             get_original = True
-        # pool size should be <= class numbers ##slack
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
         candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
         assert len(candidate_neighbours) >= expansion_size
@@ -296,56 +243,7 @@ class FUNITModel(nn.Module):
                 translation = 0.5 * (nb + qry)
             translations.append(translation)
 
-        # if get_img == True:
-        #     import numpy as np
-        #     from PIL import Image
-        #     for selected_i in range(expansion_size + 1):
-        #         translation = translations[selected_i]
-        #         image = translation.detach().cpu().squeeze().numpy()
-        #         image = np.transpose(image, (1, 2, 0))
-        #         image = ((image + 1) * 1 * 255.0)
-        #         output_img = Image.fromarray(np.uint8(image))
-        #         output_img.save(\
-        #             f'/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/images/output{img_id}_{selected_i}.jpg', 'JPEG', quality=99)
-        #         print('Save output')
         if get_img == True:
             return translations
         else:
             return torch.stack(translations).squeeze()
-
-    # returns the best / worst nb + translation
-    def study_picker(self, picker, qry, picker_loader, mode='best'):
-        candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
-        candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
-        with torch.no_grad():
-            qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
-            nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
-            nb_features_trans = nb_features.transpose(1,0)
-            scores = torch.mm(qry_features, nb_features_trans).squeeze()
-            # norm_div = (scores - min(scores)) / (max(scores) - min(scores))
-
-            # qry_features = translator.enc_content(qry).mean((2,3)) # batch=1, feature_size
-            # nb_features = translator.enc_content(candidate_neighbours).mean((2,3))
-            # nb_features_trans = nb_features.transpose(1,0)
-            # sim_scores = torch.mm(qry_features, nb_features_trans).squeeze()
-            # norm_sim = (sim_scores - min(sim_scores)) / (max(sim_scores) - min(sim_scores))
-            # scores = norm_sim * 0.2 + norm_div
-            # scores = norm_div
-        if mode == 'best':
-            scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
-        else:
-            scores, idxs = torch.sort(scores, descending=True) # worst (higher KL divergence) in front
-        idxs = idxs.long()
-        selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
-        selected_nb = selected_nbs[0, :, :, :].unsqueeze(0)
-        class_code = self.compute_k_style(qry, 1)
-        output = [self.translate_simple(qry, class_code)]
-        translation = self.translate_simple(selected_nb, class_code)
-        output.append(translation)
-        class_code = self.compute_k_style(selected_nb, 1)
-        nb = self.translate_simple(selected_nb, class_code)
-        output.append(nb)
-        return output # qry, translation, nb
-
-
-# yaml should contain original encoder path, and set poolsize and other hp

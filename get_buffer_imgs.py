@@ -1,11 +1,8 @@
 # creates and saves the recon/translation images of the test imgs (3 copies)
-# load test imgs (standard loader)
-    # init testloader
-# create and save recon/translation (break after 1 loop)
-    # init translator -> translate
 # saved format:
-# /mnt/hdd/yw/animals/n02106030/n02106030_16184.JPEG_109_179_237_312_trans{1,2,3}.jpg
-# /mnt/hdd/yw/animals/n02106030/n02106030_16184.JPEG_109_179_237_312_recon.jpg
+# path_prefix/n02106030/n02106030_16184.JPEG_109_179_237_312_trans{1,2,3}.jpg
+# path_prefix/n02106030/n02106030_16184.JPEG_109_179_237_312_recon.jpg
+
 import numpy as np
 from PIL import Image
 import torch
@@ -14,21 +11,21 @@ from model.FUNIT.trainer import FUNIT_Trainer
 
 expansion_size = 3
 
-config = get_config('./picker_traffic.yaml')
+config = get_config('./animals.yaml') # change to traffic.yaml for traffic
 config['batch_size'] = 1
 
 funit = FUNIT_Trainer(config)
 funit.cuda()
 if config['dataset'] == 'Animals':
-    funit.load_ckpt('animal_pretrained.pt')
+    funit.load_ckpt('animals_gen.pt')
 else:
-    funit.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_99999.pt')
+    funit.load_ckpt('traffic_translator_gen.pt')
 funit.eval()
 
 picker = FUNIT_Trainer(config)
 picker.cuda()
 if config['dataset'] == 'Animals':
-    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+    picker.load_ckpt('animals_picker.pt')
     picker_loader = loader_from_list(
         root=config['data_folder_train'],
         file_list=config['data_list_train'],
@@ -40,7 +37,7 @@ if config['dataset'] == 'Animals':
         num_workers=4,
         dataset=config['dataset'])
 else:
-    picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/funit_traffic_signs/gen_100999.pt')
+    picker.load_ckpt('traffic_picker.pt')
     picker_loader = loader_from_list(
         root=config['data_folder_test'],
         file_list=config['data_list_test'],
@@ -65,9 +62,7 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset='Animals')
-
-
+    dataset='Animals') # pre-processing mode set to `Animals` to prevent CLAHE transformations for test samples
 
 for i, data in enumerate(testloader):
     if i % 10 == 0:
@@ -76,11 +71,9 @@ for i, data in enumerate(testloader):
     label = data[1]
     paths = data[2]
     if config['dataset'] == 'Animals':
-        ## pick animals
         imgs = funit.model.pick_animals(picker, original_img, picker_loader,\
              expansion_size=expansion_size, random=False, get_original=True, type='funit')
     else:
-        ## pick traffic
         imgs = funit.model.pick_traffic(picker, original_img, picker_loader,\
              expansion_size=expansion_size, random=False, get_original=True, type='funit')
     # save image
@@ -94,8 +87,7 @@ for i, data in enumerate(testloader):
         original_path = '.'.join(paths[0].split('.')[:-1])
         if selected_i == 0:
             output_img.save(\
-                f'{original_path}_recon.jpg', 'JPEG', quality=99)
+            f'{original_path}_recon.jpg', 'JPEG', quality=99)
         else:
-            # print(f'{original_path}_trans{selected_i}.jpg')
             output_img.save(\
-                f'{original_path}_trans{selected_i}.jpg', 'JPEG', quality=99)
+            f'{original_path}_trans{selected_i}.jpg', 'JPEG', quality=99)

@@ -12,11 +12,11 @@ import numpy as np
 
 def default_loader(path):
     image = Image.open(path).convert('RGB')
-    return image ##slack
+    return image
 
 def transform_loader(path):
     image = io.imread(path)
-    image = exposure.equalize_adapthist(image, clip_limit=0.1)
+    image = exposure.equalize_adapthist(image, clip_limit=0.1) #CLAHE pre-processing
     image = (image * 255).astype(np.uint8)
     image = Image.fromarray(image)
     return image

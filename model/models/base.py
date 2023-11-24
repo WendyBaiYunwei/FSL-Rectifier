@@ -20,7 +20,7 @@ class FewShotModel(nn.Module):
         elif args.backbone_class == 'WRN':
             hdim = 640
             from model.networks.WRN28 import Wide_ResNet
-            self.encoder = Wide_ResNet(28, 10, 0.5)  # we set the dropout=0.5 directly here, it may achieve better results by tunning the dropout
+            self.encoder = Wide_ResNet(28, 10, 0.5)
         else:
             raise ValueError('')
 
@@ -35,10 +35,8 @@ class FewShotModel(nn.Module):
 
     def forward(self, x, get_feature=False, qry_expansion=0, spt_expansion=0):
         if get_feature:
-            # get feature with the provided embeddings
             return self.encoder(x)
         else:
-            # feature extraction
             x = x.squeeze(0)
             instance_embs = self.encoder(x)           #len, emb
 
@@ -48,9 +46,6 @@ class FewShotModel(nn.Module):
 
             new_qry = instance_embs[spt_cutoff:]
             new_qry = new_qry.reshape(1+qry_expansion, self.args.eval_query * 5, -1).mean(0)
-            # eval_query = self.args.eval_query
-            # new_qry = qry_embs.reshape(eval_query + qry_expansion, 5, -1)
-            # new_qry = new_qry.mean(dim=0)
             
             new_embs = torch.cat([new_spt, new_qry]).reshape(len(new_spt) + len(new_qry), -1)
             support_idx, query_idx = self.split_instances(x)

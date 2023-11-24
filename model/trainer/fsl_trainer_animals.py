@@ -1,5 +1,6 @@
 import time
 import os.path as osp
+import os
 import numpy as np
 
 import torch
@@ -15,7 +16,6 @@ from model.utils import (
     Averager, Timer, count_acc, one_hot,
     compute_confidence_interval, get_augmentations
 )
-# from tensorboardX import SummaryWriter
 from collections import deque
 from tqdm import tqdm
 
@@ -39,7 +39,6 @@ class FSLTrainer(Trainer):
             crop=True,
             num_workers=4,
             dataset=config['dataset'])
-        # self.train_loader, self.val_loader, self.test_loader = get_dataloader(args)
         self.model, self.para_model = prepare_model(args)
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
 
@@ -68,18 +67,14 @@ class FSLTrainer(Trainer):
             loaded_dict = loaded_dict['params']
         new_params = {}
         keys = list(loaded_dict.keys())
-        # print(keys)
-        # print(self.model.state_dict().keys())
-        # exit()
         for key in self.model.state_dict().keys():
-            # if 'encoder' in k:
-            #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
             if key in keys:
                 new_params[key] = loaded_dict[key]
             else:
                 new_params[key] = self.model.state_dict()[key]
-        # assert key_i == len(keys) - 3
-        self.model.load_state_dict(new_params) ## arg path
+                print(f'key {key} not expected.')
+
+        self.model.load_state_dict(new_params)
         self.model.train()
         
         if self.args.fix_BN:
@@ -93,7 +88,6 @@ class FSLTrainer(Trainer):
         ta = Averager()
 
         for it, batch in enumerate(self.train_loader):
-        # for batch in self.train_loader:
             self.train_step += 1
 
             if self.train_step > args.max_epoch * args.episodes_per_epoch:
@@ -131,11 +125,6 @@ class FSLTrainer(Trainer):
             optimizer_tm = time.time()
             self.ot.add(optimizer_tm - backward_tm)    
 
-            # refresh start_tm
-            # self.lr_scheduler.step()
-            # self.try_evaluate(epoch)
-        import os.path as osp
-        import os
         if not osp.exists(args.save_path):
             os.mkdir(args.save_path)
 
@@ -143,11 +132,9 @@ class FSLTrainer(Trainer):
         self.save_model('epoch-last')
 
     def evaluate(self, data_loader):
-        # restore model args
         args = self.args
-        # evaluation mode
         self.model.eval()
-        record = np.zeros((args.num_eval_episodes, 2)) # loss and acc
+        record = np.zeros((args.num_eval_episodes, 2))
         label = torch.arange(args.eval_way, dtype=torch.int16).repeat(args.eval_query)
         label = label.type(torch.LongTensor)
         if torch.cuda.is_available():
@@ -181,73 +168,54 @@ class FSLTrainer(Trainer):
         return vl, va, vap
 
     def evaluate_test(self):
-        # restore model args
         args = self.args
-        # config = get_config('/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/picker.yaml') ## slack shift to train_fsl
-        # config['batch_size'] = args.query + 1
         from model.FUNIT.trainer import FUNIT_Trainer
+
         trainer = FUNIT_Trainer(self.config)
         trainer.cuda()
-        trainer.load_ckpt('animal_pretrained.pt')
+        trainer.load_ckpt('animals_gen.pt')
         trainer.eval()
         self.trainer = trainer
+
         picker = FUNIT_Trainer(self.config)
         picker.cuda()
-        picker.load_ckpt('/home/yunwei/new/FSL-Rectifier/outputs/picker/gen_10999.pt')
+        picker.load_ckpt('animals_picker.pt')
         picker.eval()
         picker = picker.model.gen
         self.picker = picker
-        # evaluation mode
-        # self.model.load_state_dict(torch.load(osp.join(self.args.save_path, 'max_acc.pth'))['params'])
-        # path = '/home/yunwei/new/FSL-Rectifier/Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
-        # path = '/home/yunwei/new/FSL-Rectifier/Animals-Res12-Pre/0.1_0.1_[75, 150, 300]/checkpoint.pth'
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+
+        loaded_dict = torch.load(args.model_path)
         if 'state_dict' in loaded_dict:
             loaded_dict = loaded_dict['state_dict']
         else:
             loaded_dict = loaded_dict['params']
         new_params = {}
         keys = list(loaded_dict.keys())
-        # print(keys)
-        # print(self.model.state_dict().keys())
-        # exit()
         for key in self.model.state_dict().keys():
-            # if 'encoder' in k:
-            #     k = 'encoder.layer' + '.'.join(k.split('.')[3:])
             if key in keys:
                 new_params[key] = loaded_dict[key]
             else:
                 new_params[key] = self.model.state_dict()[key]
-        # assert key_i == len(keys) - 3
-        self.model.load_state_dict(new_params) ## arg path
+        self.model.load_state_dict(new_params)
         self.model.eval()
-        baseline = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        oracle = np.zeros((args.num_eval_episodes, 2)) # loss and acc
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'random-mix-up'}
-        # i2name = {0: 'mix-up', 1: 'funit', 2: 'color', 3:'affine' , 4: 'crop+rotate'}
-        # i2name = {0: 'random-funit', 1: 'funit', 2: 'affine'}
-        # i2name = {0: 'mix-up', 1: 'random-funit', 2: 'color', 3:'affine' , 4: 'crop+rotate', 5: 'funit'}
-        # i2name = {0: 'crop+rotate', 1: 'color', 2:'mix-up' , 3: 'funit', 4:'affine'}
+
+        baseline = np.zeros((args.num_eval_episodes, 2))
         i2name = {0: 'funit'}
-        # i2name = {0: 'color'}
+
         expansion_res = []
         for i in i2name:
-            expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
+            expansion_res.append(np.zeros((args.num_eval_episodes, 2)))
         label = torch.arange(args.eval_way, dtype=torch.int16).repeat(args.eval_query)
         label = label.type(torch.LongTensor)
         if torch.cuda.is_available():
             label = label.cuda()
-        # print('best epoch {}, best val acc={:.4f} + {:.4f}'.format(
-        #         self.trlog['max_acc_epoch'],
-        #         self.trlog['max_acc'],
-        #         self.trlog['max_acc_interval']))
         qry_expansion = args.qry_expansion
         spt_expansion = args.spt_expansion
         old_shot = args.eval_shot
         old_qry = args.eval_query
+
         with torch.no_grad():
             for i, batch in enumerate(self.test_loader_fsl):
-            # for i, batch in tqdm(enumerate(self.test_loader, 1)):
                 if i >= args.num_eval_episodes:
                     break
                 if torch.cuda.is_available():
@@ -255,9 +223,7 @@ class FSLTrainer(Trainer):
                 else:
                     data = batch[0]
                 new_data = torch.empty(data.shape).cuda()
-                # print(new_data.shape)
-                
-                # get baseline
+
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = trainer.model.pick_animals(picker, img,\
@@ -267,37 +233,17 @@ class FSLTrainer(Trainer):
                 acc = count_acc(logits, label)
                 baseline[i-1, 0] = loss.item()
                 baseline[i-1, 1] = acc
-
-                # oracle_new_data = torch.empty(oracle_data.shape).cuda()
-                # for img_i in range(spt_expansion * 5):
-                #     img = oracle_data[img_i].unsqueeze(0)
-                #     oracle_new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                #                  self.train_loader_funit, expansion_size=0, random=args.random_picker)
-                # oracle_new_data[spt_expansion * 5:] = new_data
-                # logits = self.model(oracle_new_data)
-                # loss = F.cross_entropy(logits, label)
                 
-                # acc = count_acc(logits, label)
-                # new_data = data
-                oracle[i-1, 0] = 0#loss.item()
-                oracle[i-1, 1] = 0#acc
-                
-                # old data shape: 80, 3, 128, 128
-                # old_spt = torch.empty(5 * shot, data.shape[1], data.shape[2], data.shape[3]).\
-                #     cuda()
                 for type_i in i2name:
                     name = i2name[type_i]
-                    # print(f'getting results for {name}')
-                    # expand support 
-                    original_spt = data[:5, :, :, :]
-                    reconstructed_spt = new_data[:5, :, :, :]
-                    # expand queries
-                    
-                    
+
+                    original_spt = data[:args.eval_way, :, :, :]
+                    reconstructed_spt = new_data[:args.eval_way, :, :, :]
+
                     if spt_expansion == 0 and self.args.add_transform == None:
                         combined_spt = reconstructed_spt
                     elif self.args.add_transform and \
-                        name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data:
+                        name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
                         expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
                              type=self.args.add_transform)  
@@ -306,29 +252,31 @@ class FSLTrainer(Trainer):
                         expanded_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name) 
                         additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
                              type=name)  
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)                  
+                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)    
                     elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
                         expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
                     else:
                         expanded_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion, type=name)
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
-        #             exit()
-                    original_qry = new_data[5:, :, :, :]
-                    new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
+
+                    original_qry = new_data[args.eval_way:, :, :, :]
+                    new_qries = torch.empty(old_qry, args.eval_way * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
                         cuda()
                     k = 0
                     if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
-                        for class_chunk_i in range(5, len(data), 5):
-                            class_chunk = data[class_chunk_i:class_chunk_i+5]
+                        for class_chunk_i in range(args.eval_way, len(data), args.eval_way):
+                            class_chunk = data[class_chunk_i:class_chunk_i+args.eval_way]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
                     else:# use restructured data
-                        for class_chunk_i in range(5, len(new_data), 5):
-                            class_chunk = new_data[class_chunk_i:class_chunk_i+5]
+                        for class_chunk_i in range(args.eval_way, len(new_data), args.eval_way):
+                            class_chunk = new_data[class_chunk_i:class_chunk_i+args.eval_way]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
                             k += 1
+
                     assert k == old_qry
+
                     new_qries = new_qries.flatten(end_dim=1)
                     expanded_data = torch.cat([combined_spt, original_qry, new_qries], dim=0)
                     if self.args.add_transform:
@@ -344,15 +292,8 @@ class FSLTrainer(Trainer):
         vl, _ = compute_confidence_interval(baseline[:,0])
         va, vap = compute_confidence_interval(baseline[:,1])
         
-        # print()
         result_str = ''
         result_str += 'Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap)
-
-        vl, _ = compute_confidence_interval(oracle[:,0])
-        va, vap = compute_confidence_interval(oracle[:,1])
-        
-        result_str += 'Oracle Test acc={:.4f} + {:.4f}\n'.format(va, vap)
-        # print()
         
         for type_i in i2name:
             name = i2name[type_i]
@@ -360,7 +301,6 @@ class FSLTrainer(Trainer):
             va, vap = compute_confidence_interval(expansion_res[type_i][:,1])
             
             result_str += f'{name} Test acc={va} + {vap}\n'
-            # print(f'{name} Test acc={va} + {vap}\n')
 
         with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-{args.\
             add_transform}-{args.spt_expansion}-{args.qry_expansion}-record.txt', 'w') as file:
@@ -383,13 +323,11 @@ class FSLTrainer(Trainer):
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
             expanded[class_i] = class_expansions
         expanded = expanded.swapaxes(0, 1).flatten(end_dim=1)
-        # expanded = expanded.reshape(5 * expansion, data.shape[1], data.shape[2], data.shape[3])
         return expanded
         
     def final_record(self):
-        # save the best performance in a txt file
-        
-        with open(osp.join(self.args.save_path, '{}+{}'.format(self.trlog['test_acc'], self.trlog['test_acc_interval'])), 'w') as f:
+        with open(osp.join(self.args.save_path, '{}+{}'.format(self.trlog['test_acc'],\
+         self.trlog['test_acc_interval'])), 'w') as f:
             f.write('best epoch {}, best val acc={:.4f} + {:.4f}\n'.format(
                 self.trlog['max_acc_epoch'],
                 self.trlog['max_acc'],

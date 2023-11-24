@@ -1,22 +1,22 @@
 import torch
+import torch.backends.cudnn as cudnn
+
 import os
 import sys
 import argparse
 import shutil
 
-from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders
 from model.utils import reorganize_data
-from model.FUNIT.utils import write_loss, write_html, write_1images, Timer, get_dichomy_loaders
+from model.FUNIT.utils import write_loss, write_html,\
+ write_1images, Timer, get_dichomy_loaders, get_config, get_train_loaders, make_result_folders
 from model.FUNIT.trainer import FUNIT_Trainer
 
-import torch.backends.cudnn as cudnn
-# Enable auto-tuner to find the best algorithm to use for your hardware.
 cudnn.benchmark = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='/home/yunwei/new/FSL-Rectifier/picker_traffic.yaml',
+                    default='animals.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -32,56 +32,38 @@ parser.add_argument('--test_batch_size',
                     default=4)
 opts = parser.parse_args()
 
-# Load experiment setting
 config = get_config(opts.config)
 max_iter = config['max_iter'] + 1000
 
 trainer = FUNIT_Trainer(config)
 trainer.cuda()
-# trainer.model.dis = trainer.model.dis.to(device='cuda:1')
-config['gpus'] = 1
 
+config['gpus'] = 1
 loaders = get_train_loaders(config)
 train_loader = loaders[0]
 test_loader = loaders[2]
 
-# Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
-# train_writer = SummaryWriter(
-#     os.path.join(opts.output_path + "/logs", model_name))
+
 if config['dataset'] == 'Traffic':
     output_directory = os.path.join(opts.output_path + "/outputs/funit_traffic_signs", model_name)
 elif config['dataset'] == 'Animals':
-    output_directory = os.path.join(opts.output_path + "/outputs", model_name)
-    print(output_directory)
-    exit()
-else:
-    print('unknown dataset in yaml')
-    exit()
-checkpoint_directory, image_directory = make_result_folders(output_directory)
-shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml'))
+    output_directory = os.path.join(opts.output_path + "/outputs/animals", model_name)
 
-iterations = trainer.resume(checkpoint_directory,
+checkpoint_directory, image_directory = make_result_folders(output_directory)
+
+iterations = trainer.picker_resume(checkpoint_directory,
                             hp=config,
-                            multigpus=opts.multigpus) # compulsory resume
+                            multigpus=opts.multigpus)
 
 while True:
     for it, (co_data, cl_data) in enumerate(zip(train_loader, test_loader)):
-        # data (batch, way, 3, 128, 128)
-        # co_data, cl_data = reorganize_data(data)
-        # print(next(trainer.model.gen.parameters())[0].device)
-        # print(co_data[0].device)
-        # exit()
         with Timer("Elapsed time in update: %f"):
             loss = trainer.traffic_picker_update(co_data, cl_data, config)
-            # g_acc = trainer.gen_update(co_data, cl_data, cn_data, config,
-            #                            opts.multigpus)
-            # torch.cuda.synchronize()
             print('loss: %.4f' % (loss))
 
         if (iterations + 1) % config['log_iter'] == 0:
             print("Iteration: %08d/%08d" % (iterations + 1, max_iter))
-            # write_loss(iterations, trainer, train_writer)
 
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
             print('change checkpoint dir', checkpoint_directory)

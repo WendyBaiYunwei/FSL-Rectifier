@@ -403,24 +403,12 @@ class Timer:
         print(self.msg % (time.time() - self.start_time))
 
 def kl_divergence(p, q):
-    # Ensure that p and q are both probability distributions (i.e., they sum to 1)
-    # p shaoe: 32, 119
     num_classes = p.shape[-1]
     p += torch.abs(torch.min(p)) + 1e-3
     norm_factor = torch.sum(p, dim=1).unsqueeze(1)
-    # print(norm_factor.shape)
-    # print(norm_factor.repeat(1, num_classes).shape)
-    # exit()
     p /= norm_factor.repeat(1, num_classes)
     q += torch.abs(torch.min(q)) + 1e-3
     norm_factor = torch.sum(q, dim=1).unsqueeze(1)
     q /= norm_factor.repeat(1, num_classes)
-    # Compute KL divergence
-    # print(p[0, :10])
-    # print(torch.log(p[0, :10]))
-    # print(q[0, :10])
-    # print(torch.log(q[0, :10]))
-    # exit()
     kl = (p * (torch.log(p) - torch.log(q))).sum()
-    # print(kl.shape, kl)
     return kl

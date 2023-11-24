@@ -9,18 +9,18 @@ import sys
 import argparse
 import shutil
 
-from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders
-from model.FUNIT.utils import write_loss, write_html, write_1images, Timer
+from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, \
+    write_loss, write_html, write_1images, Timer
 from model.FUNIT.trainer import FUNIT_Trainer
 
 import torch.backends.cudnn as cudnn
-# Enable auto-tuner to find the best algorithm to use for your hardware.
+
 cudnn.benchmark = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
                     type=str,
-                    default='/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/configs/funit_traffic_signs.yaml',
+                    default='animals.yaml',
                     help='configuration file for training and testing')
 parser.add_argument('--output_path',
                     type=str,
@@ -62,10 +62,7 @@ train_class_loader = loaders[1]
 test_content_loader = loaders[2]
 test_class_loader = loaders[3]
 
-# Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
-# train_writer = SummaryWriter(
-#     os.path.join(opts.output_path + "/logs", model_name))
 output_directory = os.path.join(opts.output_path + "/outputs", model_name)
 checkpoint_directory, image_directory = make_result_folders(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml'))
@@ -105,15 +102,6 @@ while True:
                                                      opts.multigpus)
                     write_1images(val_image_outputs, image_directory,
                                   'train_%s_%02d' % (key_str, t))
-                # for t, (test_co_data, test_cl_data) in enumerate(
-                #             zip(test_content_loader, test_class_loader)):
-                #     if t >= opts.test_batch_size:
-                #         break
-                #     test_image_outputs = trainer.test(test_co_data,
-                #                                       test_cl_data,
-                #                                       opts.multigpus)
-                #     write_1images(test_image_outputs, image_directory,
-                #                   'test_%s_%02d' % (key_str, t))
 
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
             trainer.save(checkpoint_directory, iterations, opts.multigpus)

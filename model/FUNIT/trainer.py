@@ -91,32 +91,42 @@ class FUNIT_Trainer(nn.Module):
     def resume(self, checkpoint_dir, hp, multigpus):
         this_model = self.model.module if multigpus else self.model
         
-        # last_model_name = get_model_list(checkpoint_dir, "gen")
-        # last_model_name = '/home/nus/Documents/research/augment/code/FEAT/model/FUNIT/pretrained/animal119_gen_00100000.pt'
-        if self.cfg['dataset'] == 'Animals':
-            # last_model_name = '/home/nus/Documents/research/augment/code/FEAT/outputs/picker/checkpoints/gen_100499.pt'
-            last_model_name = '/home/yunwei/new/FSL-Rectifier/animal_pretrained.pt'
-        elif self.cfg['dataset'] == 'Traffic':
-            last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/picker_traffic/checkpoints/gen_49999.pt'
-        else:
-            print('unknown dataset for resume')
-            exit()
+        last_model_name = get_model_list(checkpoint_dir, "gen")
         print(f'loaded {last_model_name}')
         state_dict = torch.load(last_model_name)
         this_model.gen.load_state_dict(state_dict['gen'])
         this_model.gen_test.load_state_dict(state_dict['gen_test'])
-        # iterations = int(last_model_name[-11:-3])
+        iterations = int(last_model_name[-11:-3])
 
-        # last_model_name = get_model_list(checkpoint_dir, "dis")
+        last_model_name = get_model_list(checkpoint_dir, "dis")
+        state_dict = torch.load(last_model_name)
+        this_model.dis.load_state_dict(state_dict['dis'])
+
+        state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
+        self.dis_opt.load_state_dict(state_dict['dis'])
+        self.gen_opt.load_state_dict(state_dict['gen'])
+
+        self.dis_scheduler = get_scheduler(self.dis_opt, hp, iterations)
+        self.gen_scheduler = get_scheduler(self.gen_opt, hp, iterations)
+        print('Resume from iteration %d' % iterations)
+        return iterations
+
+    def picker_resume(self, checkpoint_dir, hp, multigpus):
+        this_model = self.model.module if multigpus else self.model
+        if self.cfg['dataset'] == 'Animals':
+            last_model_name = 'animals_gen.pt'
+        elif self.cfg['dataset'] == 'Traffic':
+            last_model_name = 'traffic_translator_gen.pt'
+
+        print(f'loaded {last_model_name}')
+        state_dict = torch.load(last_model_name)
+        this_model.gen.load_state_dict(state_dict['gen'])
+        this_model.gen_test.load_state_dict(state_dict['gen_test'])
+
         if self.cfg['dataset'] == 'Traffic':
-            # last_model_name = './outputs/funit_traffic_signs/checkpoints/dis_99999.pt'
-            last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/picker_traffic/checkpoints/dis_49999.pt'
+            last_model_name = 'traffic_translator_dis.pt'
             state_dict = torch.load(last_model_name)
             this_model.dis.load_state_dict(state_dict['dis'])
-
-        # state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
-        # self.dis_opt.load_state_dict(state_dict['dis'])
-        # self.gen_opt.load_state_dict(state_dict['gen'])
 
         iterations = 100000
         self.dis_scheduler = get_scheduler(self.dis_opt, hp, iterations)
@@ -126,9 +136,6 @@ class FUNIT_Trainer(nn.Module):
 
     def save(self, snapshot_dir, iterations, multigpus):
         this_model = self.model.module if multigpus else self.model
-        # Save generators, discriminators, and optimizers
-        # gen_name = os.path.join(snapshot_dir, 'gen_9zzz.pt')
-        # dis_name = os.path.join(snapshot_dir, 'dis_9zzz.pt')
         gen_name = os.path.join(snapshot_dir, f'gen_{iterations}.pt')
         dis_name = os.path.join(snapshot_dir, f'dis_{iterations}.pt')
         opt_name = os.path.join(snapshot_dir, 'optimizer.pt')
