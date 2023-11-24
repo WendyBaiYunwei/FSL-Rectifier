@@ -35,15 +35,15 @@ dis:
 # data options
 eval_shot: 2
 eval_query: 1
-pool_size: 20
+pool_size: 20                 # candidate neighbour size
 way_size: 5
 num_workers: 4
 batch_size: 32
-new_size: 140                 # first resize the shortest image side to this size
+new_size: 140                 
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
-data_folder_train: /mnt/hdd/yw/animals
-data_list_train: /mnt/hdd/yw/animals/animals_list_train.txt
-data_folder_test: /mnt/hdd/yw/animals
-data_list_test: /mnt/hdd/yw/animals/animals_list_test.txt
+data_folder_train: animals
+data_list_train: animals_list_train.txt
+data_folder_test: animals
+data_list_test: animals_list_test.txt
 dataset: 'Animals'

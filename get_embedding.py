@@ -11,7 +11,7 @@ import torch
 from model.models.feat import FEAT
 
 sample_iters = 2000
-path = 'Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+path = 'animals_conv4_checkpoint.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--dataset', type=str, default='Animals')    

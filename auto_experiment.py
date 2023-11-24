@@ -6,8 +6,8 @@ assert torch.cuda.is_available(), "\033[31m You need GPU to Train! \033[0m"
 print("CPU Count is :", os.cpu_count())
 
 paths = [
-    'Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth',
-    'Traffic-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+    'animals_conv4_checkpoint.pth',
+    'traffic_conv4_checkpoint.pth'
 ]
 
 commands = [
