@@ -10,7 +10,7 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.FUNIT.utils import (
+from model.IMAGE_TRANSLATOR.utils import (
     get_recon, get_trans,
     get_train_loaders, get_config, get_dichomy_loader, loader_from_list
 )
@@ -41,7 +41,7 @@ class FSLTrainer(Trainer):
             n_cls=config['way_size'],
             dataset='Animals')
 
-        self.train_loader_funit = loader_from_list(
+        self.train_loader_image_translator = loader_from_list(
             root=config['data_folder_train'],
             file_list=config['data_list_train'],
             batch_size=config['pool_size'],
@@ -182,13 +182,13 @@ class FSLTrainer(Trainer):
     def evaluate_test(self):
         # restore model args
         args = self.args
-        from model.FUNIT.trainer import FUNIT_Trainer
-        trainer = FUNIT_Trainer(self.config)
+        from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
+        trainer = IMAGE_TRANSLATOR_Trainer(self.config)
         trainer.cuda()
         trainer.load_ckpt('animals_gen.pt')
         trainer.eval()
         self.trainer = trainer
-        picker = FUNIT_Trainer(self.config)
+        picker = IMAGE_TRANSLATOR_Trainer(self.config)
         picker.cuda()
         picker.load_ckpt('animals_picker.pt')
         picker.eval()
@@ -211,7 +211,7 @@ class FSLTrainer(Trainer):
         self.model.load_state_dict(new_params) 
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) 
-        i2name = {0: 'funit'}
+        i2name = {0: 'image_translator'}
 
         expansion_res = []
         for i in i2name:
@@ -257,7 +257,7 @@ class FSLTrainer(Trainer):
                     if spt_expansion == 0 and self.args.add_transform == None:
                         combined_spt = reconstructed_spt
                     elif self.args.add_transform and \
-                        name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data:
+                        name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data:
                         expanded_spt = self.get_class_expansion(picker, original_spt,\
                              spt_expansion, img_names = img_names, type=name)
                         additional_spt = self.get_class_expansion(picker,\
@@ -270,7 +270,7 @@ class FSLTrainer(Trainer):
                         additional_spt = self.get_class_expansion(picker, reconstructed_spt,\
                          spt_expansion, type=name)  
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)                  
-                    elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
+                    elif name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']:
                         expanded_spt = self.get_class_expansion(picker, original_spt,\
                          spt_expansion, img_names = img_names, type=name)
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
@@ -284,7 +284,7 @@ class FSLTrainer(Trainer):
                      data.shape[3]).cuda()
 
                     k = 0
-                    if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                    if name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data
                         for class_chunk_i in range(5, len(data), 5):
                             class_chunk = data[class_chunk_i:class_chunk_i+5]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion,\
@@ -327,15 +327,15 @@ class FSLTrainer(Trainer):
         return vl, va, vap
     
     # input 01234, return 012340123401234
-    # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
-    def get_class_expansion(self, picker, data, expansion, type='funit', img_names=''):
+    # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'image_translator'
+    def get_class_expansion(self, picker, data, expansion, type='image_translator', img_names=''):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3]).cuda()
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
-            if type == 'funit' or type == 'mix-up':
+            if type == 'image_translator' or type == 'mix-up':
                 class_expansions = get_trans(self.config, img_names[class_i], expansion_size=expansion)
-            elif type == 'random-mix-up' or type == 'random-funit':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_funit, \
+            elif type == 'random-mix-up' or type == 'random-image_translator':
+                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_image_translator, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)

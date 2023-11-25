@@ -7,9 +7,9 @@ import argparse
 import shutil
 
 from model.utils import reorganize_data
-from model.FUNIT.utils import write_loss, write_html,\
+from model.IMAGE_TRANSLATOR.utils import write_loss, write_html,\
  write_1images, Timer, get_dichomy_loaders, get_config, get_train_loaders, make_result_folders
-from model.FUNIT.trainer import FUNIT_Trainer
+from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
 
 cudnn.benchmark = True
 
@@ -35,7 +35,7 @@ opts = parser.parse_args()
 config = get_config(opts.config)
 max_iter = config['max_iter'] + 1000
 
-trainer = FUNIT_Trainer(config)
+trainer = IMAGE_TRANSLATOR_Trainer(config)
 trainer.cuda()
 
 config['gpus'] = 1
@@ -46,7 +46,7 @@ test_loader = loaders[2]
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
 
 if config['dataset'] == 'Traffic':
-    output_directory = os.path.join(opts.output_path + "/outputs/funit_traffic_signs", model_name)
+    output_directory = os.path.join(opts.output_path + "/outputs/image_translator_traffic_signs", model_name)
 elif config['dataset'] == 'Animals':
     output_directory = os.path.join(opts.output_path + "/outputs/animals", model_name)
 

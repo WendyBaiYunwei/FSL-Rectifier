@@ -10,7 +10,7 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.FUNIT.utils import get_train_loaders, get_config, get_dichomy_loaders, loader_from_list
+from model.IMAGE_TRANSLATOR.utils import get_train_loaders, get_config, get_dichomy_loaders, loader_from_list
 from model.utils import (
     pprint, ensure_path,
     Averager, Timer, count_acc, one_hot,
@@ -25,11 +25,11 @@ class FSLTrainer(Trainer):
         loaders = get_dichomy_loaders(config)
         self.config = config
 
-        self.test_loader_funit = loaders[1]
+        self.test_loader_image_translator = loaders[1]
         self.test_loader_fsl = loaders[2]
         self.train_loader = loaders[3]
 
-        self.train_loader_funit = loader_from_list(
+        self.train_loader_image_translator = loader_from_list(
             root=config['data_folder_train'],
             file_list=config['data_list_train'],
             batch_size=config['pool_size'],
@@ -169,15 +169,15 @@ class FSLTrainer(Trainer):
 
     def evaluate_test(self):
         args = self.args
-        from model.FUNIT.trainer import FUNIT_Trainer
+        from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
 
-        trainer = FUNIT_Trainer(self.config)
+        trainer = IMAGE_TRANSLATOR_Trainer(self.config)
         trainer.cuda()
         trainer.load_ckpt('animals_gen.pt')
         trainer.eval()
         self.trainer = trainer
 
-        picker = FUNIT_Trainer(self.config)
+        picker = IMAGE_TRANSLATOR_Trainer(self.config)
         picker.cuda()
         picker.load_ckpt('animals_picker.pt')
         picker.eval()
@@ -200,7 +200,7 @@ class FSLTrainer(Trainer):
         self.model.eval()
 
         baseline = np.zeros((args.num_eval_episodes, 2))
-        i2name = {0: 'funit'}
+        i2name = {0: 'image_translator'}
 
         expansion_res = []
         for i in i2name:
@@ -227,7 +227,7 @@ class FSLTrainer(Trainer):
                 for img_i in range(len(new_data)):
                     img = data[img_i].unsqueeze(0)
                     new_data[img_i] = trainer.model.pick_animals(picker, img,\
-                                 self.train_loader_funit, expansion_size=0, random=args.random_picker)
+                                 self.train_loader_image_translator, expansion_size=0, random=args.random_picker)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
@@ -243,7 +243,7 @@ class FSLTrainer(Trainer):
                     if spt_expansion == 0 and self.args.add_transform == None:
                         combined_spt = reconstructed_spt
                     elif self.args.add_transform and \
-                        name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
+                        name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']:
                         expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
                              type=self.args.add_transform)  
@@ -253,7 +253,7 @@ class FSLTrainer(Trainer):
                         additional_spt = self.get_class_expansion(picker, reconstructed_spt, spt_expansion,\
                              type=name)  
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)    
-                    elif name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']:
+                    elif name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']:
                         expanded_spt = self.get_class_expansion(picker, original_spt, spt_expansion, type=name)
                         combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
                     else:
@@ -264,7 +264,7 @@ class FSLTrainer(Trainer):
                     new_qries = torch.empty(old_qry, args.eval_way * qry_expansion, data.shape[1], data.shape[2], data.shape[3]).\
                         cuda()
                     k = 0
-                    if name in ['funit', 'mix-up', 'random-mix-up', 'random-funit']: # use original data
+                    if name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data
                         for class_chunk_i in range(args.eval_way, len(data), args.eval_way):
                             class_chunk = data[class_chunk_i:class_chunk_i+args.eval_way]
                             new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
@@ -308,16 +308,16 @@ class FSLTrainer(Trainer):
         return vl, va, vap
     
     # input 01234, return 012340123401234
-    # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'funit'
-    def get_class_expansion(self, picker, data, expansion, type='funit'):
+    # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'image_translator'
+    def get_class_expansion(self, picker, data, expansion, type='image_translator'):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3]).cuda()
         for class_i in range(5):
             img = data[class_i].unsqueeze(0)
-            if type == 'funit' or type == 'mix-up':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_funit, \
+            if type == 'image_translator' or type == 'mix-up':
+                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_image_translator, \
                         expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
-            elif type == 'random-mix-up' or type == 'random-funit':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_funit, \
+            elif type == 'random-mix-up' or type == 'random-image_translator':
+                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_image_translator, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
             else:
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)

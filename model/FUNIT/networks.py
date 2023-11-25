@@ -9,8 +9,8 @@ import torch
 from torch import nn
 from torch import autograd
 
-from model.FUNIT.blocks import LinearBlock, Conv2dBlock, ResBlocks, ActFirstResBlock
-from model.FUNIT.utils import kl_divergence 
+from model.IMAGE_TRANSLATOR.blocks import LinearBlock, Conv2dBlock, ResBlocks, ActFirstResBlock
+from model.IMAGE_TRANSLATOR.utils import kl_divergence 
 
 
 def assign_adain_params(adain_params, model):

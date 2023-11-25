@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch.optim import lr_scheduler
 
-from model.FUNIT.funit_model import FUNITModel
+from model.IMAGE_TRANSLATOR.image_translator_model import IMAGE_TRANSLATORModel
 
 
 def update_average(model_tgt, model_src, beta=0.999):
@@ -24,10 +24,10 @@ def update_average(model_tgt, model_src, beta=0.999):
             p_tgt.copy_(beta*p_tgt + (1. - beta)*p_src)
 
 
-class FUNIT_Trainer(nn.Module):
+class IMAGE_TRANSLATOR_Trainer(nn.Module):
     def __init__(self, cfg):
-        super(FUNIT_Trainer, self).__init__()
-        self.model = FUNITModel(cfg)
+        super(IMAGE_TRANSLATOR_Trainer, self).__init__()
+        self.model = IMAGE_TRANSLATORModel(cfg)
         self.cfg = cfg
         lr_gen = cfg['lr_gen']
         lr_dis = cfg['lr_dis']

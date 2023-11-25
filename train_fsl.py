@@ -5,7 +5,7 @@ from model.utils import (
     get_command_line_parser,
     postprocess_args,
 )
-from model.FUNIT.utils import get_train_loaders, get_config
+from model.IMAGE_TRANSLATOR.utils import get_train_loaders, get_config
 
 if __name__ == '__main__':
     parser = get_command_line_parser()

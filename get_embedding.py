@@ -1,11 +1,11 @@
 import pickle
 import numpy as np
-from model.FUNIT.utils import loader_from_list, get_config
+from model.IMAGE_TRANSLATOR.utils import loader_from_list, get_config
 from model.utils import get_augmentations
 from model.trainer.helpers import (
     prepare_model
 )
-from model.FUNIT.trainer import FUNIT_Trainer
+from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
 import argparse
 import torch
 from model.models.feat import FEAT
@@ -56,12 +56,12 @@ for key in model.state_dict().keys():
         print(f"Unexpected key {key}")
 model.load_state_dict(new_params)
 
-trainer = FUNIT_Trainer(config)
+trainer = IMAGE_TRANSLATOR_Trainer(config)
 trainer.cuda()
 trainer.load_ckpt('animals_gen.pt')
 trainer.eval()
 
-picker = FUNIT_Trainer(config)
+picker = IMAGE_TRANSLATOR_Trainer(config)
 picker.cuda()
 picker.load_ckpt('animals_picker.pt')
 picker = picker.model.gen
@@ -101,7 +101,7 @@ for i, data in enumerate(loader):
         crop_expansion = get_augmentations(reconstructed_img.unsqueeze(0), AUGMENTATION_SIZE, 'crop+rotate')
 
         expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=AUGMENTATION_SIZE,\
-                                                random=False, get_original=False, type='funit')
+                                                random=False, get_original=False, type='image_translator')
 
         embedding = model(torch.cat([crop_expansion, expansion], dim=0), get_feature=True)
         embeddings.append(embedding.detach().cpu())

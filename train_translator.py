@@ -9,9 +9,9 @@ import sys
 import argparse
 import shutil
 
-from model.FUNIT.utils import get_config, get_train_loaders, make_result_folders, \
+from model.IMAGE_TRANSLATOR.utils import get_config, get_train_loaders, make_result_folders, \
     write_loss, write_html, write_1images, Timer
-from model.FUNIT.trainer import FUNIT_Trainer
+from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
 
 import torch.backends.cudnn as cudnn
 
@@ -45,7 +45,7 @@ max_iter = config['max_iter']
 if opts.batch_size != 0:
     config['batch_size'] = opts.batch_size
 
-trainer = FUNIT_Trainer(config)
+trainer = IMAGE_TRANSLATOR_Trainer(config)
 trainer.cuda()
 if opts.multigpus:
     ngpus = torch.cuda.device_count()

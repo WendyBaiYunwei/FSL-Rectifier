@@ -6,23 +6,23 @@
 import numpy as np
 from PIL import Image
 import torch
-from model.FUNIT.utils import loader_from_list, get_config
-from model.FUNIT.trainer import FUNIT_Trainer
+from model.IMAGE_TRANSLATOR.utils import loader_from_list, get_config
+from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
 
 expansion_size = 3
 
 config = get_config('./animals.yaml') # change to traffic.yaml for traffic
 config['batch_size'] = 1
 
-funit = FUNIT_Trainer(config)
-funit.cuda()
+image_translator = IMAGE_TRANSLATOR_Trainer(config)
+image_translator.cuda()
 if config['dataset'] == 'Animals':
-    funit.load_ckpt('animals_gen.pt')
+    image_translator.load_ckpt('animals_gen.pt')
 else:
-    funit.load_ckpt('traffic_translator_gen.pt')
-funit.eval()
+    image_translator.load_ckpt('traffic_translator_gen.pt')
+image_translator.eval()
 
-picker = FUNIT_Trainer(config)
+picker = IMAGE_TRANSLATOR_Trainer(config)
 picker.cuda()
 if config['dataset'] == 'Animals':
     picker.load_ckpt('animals_picker.pt')
@@ -71,11 +71,11 @@ for i, data in enumerate(testloader):
     label = data[1]
     paths = data[2]
     if config['dataset'] == 'Animals':
-        imgs = funit.model.pick_animals(picker, original_img, picker_loader,\
-             expansion_size=expansion_size, random=False, get_original=True, type='funit')
+        imgs = image_translator.model.pick_animals(picker, original_img, picker_loader,\
+             expansion_size=expansion_size, random=False, get_original=True, type='image_translator')
     else:
-        imgs = funit.model.pick_traffic(picker, original_img, picker_loader,\
-             expansion_size=expansion_size, random=False, get_original=True, type='funit')
+        imgs = image_translator.model.pick_traffic(picker, original_img, picker_loader,\
+             expansion_size=expansion_size, random=False, get_original=True, type='image_translator')
     # save image
     for selected_i in range(expansion_size + 1):
         translation = imgs[selected_i]

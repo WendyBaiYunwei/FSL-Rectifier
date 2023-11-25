@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
-from model.FUNIT.data import ImageLabelFilelist, default_loader
+from model.IMAGE_TRANSLATOR.data import ImageLabelFilelist, default_loader
 import numpy as np
 
 

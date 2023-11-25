@@ -8,15 +8,15 @@ import copy
 import torch
 import torch.nn as nn
 
-from model.FUNIT.networks import FewShotGen, GPPatchMcResDis
+from model.IMAGE_TRANSLATOR.networks import FewShotGen, GPPatchMcResDis
 
 def recon_criterion(predict, target):
     return torch.mean(torch.abs(predict - target))
 
 
-class FUNITModel(nn.Module):
+class IMAGE_TRANSLATORModel(nn.Module):
     def __init__(self, hp):
-        super(FUNITModel, self).__init__()
+        super(IMAGE_TRANSLATORModel, self).__init__()
         self.gen = FewShotGen(hp['gen'])
         self.dis = GPPatchMcResDis(hp['dis'])
         self.gen_test = copy.deepcopy(self.gen)
@@ -167,7 +167,7 @@ class FUNITModel(nn.Module):
         return fake_degree
  
 
-    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img=False, random=False, img_id='', get_original=True, type='funit'):
+    def pick_traffic(self, picker, qry, picker_loader, expansion_size=0, get_img=False, random=False, img_id='', get_original=True, type='image_translator'):
         if expansion_size == 0:
             get_original = True
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
@@ -195,7 +195,7 @@ class FUNITModel(nn.Module):
         
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
-            if type == 'funit' or type == 'random-funit':
+            if type == 'image_translator' or type == 'random-image_translator':
                 class_code = self.compute_k_style(nb, 1)
                 translation = self.translate_simple(qry, class_code)
             elif type == 'mix-up' or type == 'random-mix-up':
@@ -208,7 +208,7 @@ class FUNITModel(nn.Module):
         else:
             return torch.stack(translations).squeeze()
 
-    def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='funit'): 
+    def pick_animals(self, picker, qry, picker_loader, expansion_size=0, get_img = False, random=False, img_id='', get_original=True, type='image_translator'): 
         if expansion_size == 0:
             get_original = True
         candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
@@ -236,7 +236,7 @@ class FUNITModel(nn.Module):
         
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
-            if type == 'funit' or type == 'random-funit':
+            if type == 'image_translator' or type == 'random-image_translator':
                 translation = self.translate_simple(nb, class_code)
             elif type == 'mix-up' or type == 'random-mix-up':
                 nb = self.translate_simple(nb, self.compute_k_style(nb, 1))
