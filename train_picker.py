@@ -6,7 +6,6 @@ import sys
 import argparse
 import shutil
 
-from model.utils import reorganize_data
 from model.IMAGE_TRANSLATOR.utils import write_loss, write_html,\
  write_1images, Timer, get_dichomy_loaders, get_config, get_train_loaders, make_result_folders
 from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
@@ -46,9 +45,9 @@ test_loader = loaders[2]
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
 
 if config['dataset'] == 'Traffic':
-    output_directory = os.path.join(opts.output_path + "/outputs/image_translator_traffic_signs", model_name)
+    output_directory = os.path.join(opts.output_path + "/outputs/traffic_picker", model_name)
 elif config['dataset'] == 'Animals':
-    output_directory = os.path.join(opts.output_path + "/outputs/animals", model_name)
+    output_directory = os.path.join(opts.output_path + "/outputs/animals_picker", model_name)
 
 checkpoint_directory, image_directory = make_result_folders(output_directory)
 

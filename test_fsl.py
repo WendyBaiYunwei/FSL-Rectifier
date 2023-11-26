@@ -10,7 +10,7 @@ from model.IMAGE_TRANSLATOR.utils import get_train_loaders, get_config
 if __name__ == '__main__':
     parser = get_command_line_parser()
     args = postprocess_args(parser.parse_args())
-    if args.dataset == 'Animals'"
+    if args.dataset == 'Animals':
         config = get_config('animals.yaml')
     else:
         config = get_config('traffic.yaml')
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     
     pprint(vars(args))
 
-    from model.trainer.fsl_trainer import FSLTrainer
+    from model.trainer.fsl_trainer_animals import FSLTrainer
     # from model.trainer.fsl_trainer_buffer import FSLTrainer
 
     set_gpu(args.gpu)

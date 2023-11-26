@@ -12,7 +12,7 @@ def load_data_from_pickle(embeddings_file, labels_file):
     return embeddings, labels
 
 # Perform t-SNE on the embeddings
-def perform_tsne(embeddings, perplexity=30, n_iter=2000, random_state=1): 
+def perform_tsne(embeddings, perplexity=30, n_iter=3000, random_state=1): 
     tsne = TSNE(n_iter=n_iter, random_state=random_state)
     embeddings_2d = tsne.fit_transform(embeddings)
     return embeddings_2d

@@ -7,12 +7,7 @@ from model.dataloader.samplers import CategoriesSampler, RandomSampler, ClassSam
 from model.models.protonet import ProtoNet
 from model.models.matchnet import MatchNet
 from model.models.feat import FEAT
-from model.models.featstar import FEATSTAR
 from model.models.deepset import DeepSet
-from model.models.bilstm import BILSTM
-from model.models.graphnet import GCN
-from model.models.semi_feat import SemiFEAT
-from model.models.semi_protofeat import SemiProtoFEAT
 
 class MultiGPUDataloader:
     def __init__(self, dataloader, num_device):
