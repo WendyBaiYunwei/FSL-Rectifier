@@ -42,12 +42,12 @@ batch_size: 32
 new_size: 140                 
 crop_image_height: 128        # random crop image of this height
 crop_image_width: 128         # random crop image of this width
-data_folder_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
-data_list_train: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_train.txt
-data_folder_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs
-data_list_test: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_list_test.txt
-data_train_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_train_class_names.txt
-data_test_classes: /mnt/hdd/yw/animals/traffic/dataset/traffic_signs_test_class_names.txt
+data_folder_train: traffic_signs
+data_list_train: traffic_signs_list_train.txt
+data_folder_test: traffic_signs
+data_list_test: traffic_signs_list_test.txt
+data_train_classes: traffic_signs_train_class_names.txt
+data_test_classes: traffic_signs_test_class_names.txt
 
 # test options:
 dataset: 'Traffic'
