@@ -1,16 +1,12 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
+
 import numpy as np
 
 import torch
 from torch import nn
 from torch import autograd
 
-from model.IMAGE_TRANSLATOR.blocks import LinearBlock, Conv2dBlock, ResBlocks, ActFirstResBlock
-from model.IMAGE_TRANSLATOR.utils import kl_divergence 
+from model.image_translator.blocks import LinearBlock, Conv2dBlock, ResBlocks, ActFirstResBlock
+from model.image_translator.utils import kl_divergence 
 
 
 def assign_adain_params(adain_params, model):

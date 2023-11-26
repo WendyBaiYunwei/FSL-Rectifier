@@ -6,15 +6,15 @@
 import numpy as np
 from PIL import Image
 import torch
-from model.IMAGE_TRANSLATOR.utils import loader_from_list, get_config
-from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
+from model.image_translator.utils import loader_from_list, get_config
+from model.image_translator.trainer import Translator_Trainer
 
 expansion_size = 3
 
 config = get_config('./animals.yaml') # change to traffic.yaml for traffic
 config['batch_size'] = 1
 
-image_translator = IMAGE_TRANSLATOR_Trainer(config)
+image_translator = Translator_Trainer(config)
 image_translator.cuda()
 if config['dataset'] == 'Animals':
     image_translator.load_ckpt('animals_gen.pt')
@@ -22,7 +22,7 @@ else:
     image_translator.load_ckpt('traffic_translator_gen.pt')
 image_translator.eval()
 
-picker = IMAGE_TRANSLATOR_Trainer(config)
+picker = Translator_Trainer(config)
 picker.cuda()
 if config['dataset'] == 'Animals':
     picker.load_ckpt('animals_picker.pt')

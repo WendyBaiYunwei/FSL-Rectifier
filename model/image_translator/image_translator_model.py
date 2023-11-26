@@ -1,22 +1,18 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
+
 import copy
 
 import torch
 import torch.nn as nn
 
-from model.IMAGE_TRANSLATOR.networks import FewShotGen, GPPatchMcResDis
+from model.image_translator.networks import FewShotGen, GPPatchMcResDis
 
 def recon_criterion(predict, target):
     return torch.mean(torch.abs(predict - target))
 
 
-class IMAGE_TRANSLATORModel(nn.Module):
+class Translator_Model(nn.Module):
     def __init__(self, hp):
-        super(IMAGE_TRANSLATORModel, self).__init__()
+        super(Translator_Model, self).__init__()
         self.gen = FewShotGen(hp['gen'])
         self.dis = GPPatchMcResDis(hp['dis'])
         self.gen_test = copy.deepcopy(self.gen)

@@ -10,7 +10,7 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.IMAGE_TRANSLATOR.utils import (
+from model.image_translator.utils import (
     get_recon, get_trans,
     get_train_loaders, get_config, get_dichomy_loader, loader_from_list
 )
@@ -182,13 +182,13 @@ class FSLTrainer(Trainer):
     def evaluate_test(self):
         # restore model args
         args = self.args
-        from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
-        trainer = IMAGE_TRANSLATOR_Trainer(self.config)
+        from model.image_translator.trainer import Translator_Trainer
+        trainer = Translator_Trainer(self.config)
         trainer.cuda()
         trainer.load_ckpt('animals_gen.pt')
         trainer.eval()
         self.trainer = trainer
-        picker = IMAGE_TRANSLATOR_Trainer(self.config)
+        picker = Translator_Trainer(self.config)
         picker.cuda()
         picker.load_ckpt('animals_picker.pt')
         picker.eval()

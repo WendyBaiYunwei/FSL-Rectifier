@@ -6,9 +6,9 @@ import sys
 import argparse
 import shutil
 
-from model.IMAGE_TRANSLATOR.utils import write_loss, write_html,\
+from model.image_translator.utils import write_loss, write_html,\
  write_1images, Timer, get_dichomy_loaders, get_config, get_train_loaders, make_result_folders
-from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
+from model.image_translator.trainer import Translator_Trainer
 
 cudnn.benchmark = True
 
@@ -34,7 +34,7 @@ opts = parser.parse_args()
 config = get_config(opts.config)
 max_iter = config['max_iter'] + 1000
 
-trainer = IMAGE_TRANSLATOR_Trainer(config)
+trainer = Translator_Trainer(config)
 trainer.cuda()
 
 config['gpus'] = 1

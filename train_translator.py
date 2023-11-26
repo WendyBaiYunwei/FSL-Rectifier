@@ -1,17 +1,13 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
+
 import torch
 import os
 import sys
 import argparse
 import shutil
 
-from model.IMAGE_TRANSLATOR.utils import get_config, get_train_loaders, make_result_folders, \
+from model.image_translator.utils import get_config, get_train_loaders, make_result_folders, \
     write_loss, write_html, write_1images, Timer
-from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
+from model.image_translator.trainer import Translator_Trainer
 
 import torch.backends.cudnn as cudnn
 
@@ -45,7 +41,7 @@ max_iter = config['max_iter']
 if opts.batch_size != 0:
     config['batch_size'] = opts.batch_size
 
-trainer = IMAGE_TRANSLATOR_Trainer(config)
+trainer = Translator_Trainer(config)
 trainer.cuda()
 if opts.multigpus:
     ngpus = torch.cuda.device_count()

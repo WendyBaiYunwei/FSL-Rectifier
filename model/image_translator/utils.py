@@ -1,8 +1,4 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
+
 import os
 import yaml
 import time
@@ -12,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
-from model.IMAGE_TRANSLATOR.data import ImageLabelFilelist, default_loader
+from model.image_translator.data import ImageLabelFilelist, default_loader
 import numpy as np
 
 

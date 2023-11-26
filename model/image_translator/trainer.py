@@ -1,8 +1,3 @@
-"""
-Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license
-(https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
 import copy
 import os
 import math
@@ -12,7 +7,7 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch.optim import lr_scheduler
 
-from model.IMAGE_TRANSLATOR.image_translator_model import IMAGE_TRANSLATORModel
+from model.image_translator.image_translator_model import Translator_Model
 
 
 def update_average(model_tgt, model_src, beta=0.999):
@@ -24,10 +19,10 @@ def update_average(model_tgt, model_src, beta=0.999):
             p_tgt.copy_(beta*p_tgt + (1. - beta)*p_src)
 
 
-class IMAGE_TRANSLATOR_Trainer(nn.Module):
+class Translator_Trainer(nn.Module):
     def __init__(self, cfg):
-        super(IMAGE_TRANSLATOR_Trainer, self).__init__()
-        self.model = IMAGE_TRANSLATORModel(cfg)
+        super(Translator_Trainer, self).__init__()
+        self.model = Translator_Model(cfg)
         self.cfg = cfg
         lr_gen = cfg['lr_gen']
         lr_dis = cfg['lr_dis']

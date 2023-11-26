@@ -4,8 +4,8 @@ from model.utils import get_augmentations
 from model.trainer.helpers import (
     prepare_model
 )
-from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
-from model.IMAGE_TRANSLATOR.utils import (
+from model.image_translator.trainer import Translator_Trainer
+from model.image_translator.utils import (
     get_recon, get_trans,
     loader_from_list, get_config
 )
@@ -62,12 +62,12 @@ for key in model.state_dict().keys():
 
 model.load_state_dict(new_params)
 
-trainer = IMAGE_TRANSLATOR_Trainer(config)
+trainer = Translator_Trainer(config)
 trainer.cuda()
 trainer.load_ckpt('animals_gen.pt')
 trainer.eval()
 
-picker = IMAGE_TRANSLATOR_Trainer(config)
+picker = Translator_Trainer(config)
 picker.cuda()
 picker.load_ckpt('animals_picker.pt')
 picker = picker.model.gen

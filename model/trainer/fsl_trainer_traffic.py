@@ -9,7 +9,7 @@ from model.trainer.base import Trainer
 from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
-from model.IMAGE_TRANSLATOR.utils import get_train_loaders, get_config, get_dichomy_loader, loader_from_list, write_1images
+from model.image_translator.utils import get_train_loaders, get_config, get_dichomy_loader, loader_from_list, write_1images
 from model.utils import (
     pprint, ensure_path,
     Averager, Timer, count_acc, one_hot,
@@ -158,13 +158,13 @@ class FSLTrainer(Trainer):
     def evaluate_test(self):
         args = self.args
 
-        from model.IMAGE_TRANSLATOR.trainer import IMAGE_TRANSLATOR_Trainer
-        trainer = IMAGE_TRANSLATOR_Trainer(self.config)
+        from model.image_translator.trainer import Translator_Trainer
+        trainer = Translator_Trainer(self.config)
         trainer.cuda()
         trainer.load_ckpt('traffic_translator_gen.pt')
         trainer.eval()
         self.trainer = trainer
-        picker = IMAGE_TRANSLATOR_Trainer(self.config)
+        picker = Translator_Trainer(self.config)
         picker.cuda()
         picker.load_ckpt('traffic_picker.pt')
         picker.eval()
