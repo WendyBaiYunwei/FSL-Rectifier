@@ -116,7 +116,7 @@ class IMAGE_TRANSLATOR_Trainer(nn.Module):
         if self.cfg['dataset'] == 'Animals':
             last_model_name = 'animals_gen.pt'
         elif self.cfg['dataset'] == 'Traffic':
-            last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/traffic/checkpoints/gen_9999.pt'
+            last_model_name = 'traffic_translator_gen.pt'
 
         print(f'loaded {last_model_name}')
         state_dict = torch.load(last_model_name)
@@ -124,7 +124,7 @@ class IMAGE_TRANSLATOR_Trainer(nn.Module):
         this_model.gen_test.load_state_dict(state_dict['gen_test'])
 
         if self.cfg['dataset'] == 'Traffic':
-            last_model_name = '/home/yunwei/new/FSL-Rectifier/outputs/traffic/checkpoints/dis_9999.pt'
+            last_model_name = 'traffic_translator_dis.pt'
             state_dict = torch.load(last_model_name)
             this_model.dis.load_state_dict(state_dict['dis'])
 
