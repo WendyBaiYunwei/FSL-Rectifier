@@ -102,7 +102,7 @@ def get_dichomy_loader(
         center_crop=False,
         return_paths=False,
         drop_last=True,
-        n_cls=2,
+        n_cls=5,
         dataset='Animals'):
 
     transform = get_transform(new_size, height, width)
@@ -217,7 +217,7 @@ def get_dichomy_loaders(conf):
             width=width,
             crop=True,
             num_workers=num_workers,
-            n_cls=2,
+            n_cls=conf['way_size'],
             dataset=conf['dataset'])
 
     test_loader = get_dichomy_loader(
@@ -230,7 +230,7 @@ def get_dichomy_loaders(conf):
             width=width,
             crop=True,
             num_workers=num_workers,
-            n_cls=2,
+            n_cls=conf['way_size'],
             dataset=conf['dataset'])
     
     test_loader_fsl = get_dichomy_loader(

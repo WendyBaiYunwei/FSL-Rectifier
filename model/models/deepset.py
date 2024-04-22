@@ -70,7 +70,8 @@ class DeepSet(FewShotModel):
         num_batch = proto.shape[0]
         num_proto = proto.shape[1]
         num_query = np.prod(query_idx.shape[-2:])
-    
+        
+
         # query: (num_batch, num_query, num_proto, num_emb)
         # proto: (num_batch, num_proto, num_emb)
         proto = self.set_func(proto)        

@@ -12,8 +12,8 @@ def load_data_from_pickle(embeddings_file, labels_file):
     return embeddings, labels
 
 # Perform t-SNE on the embeddings
-def perform_tsne(embeddings, perplexity=30, n_iter=3000, random_state=1): 
-    tsne = TSNE(n_iter=n_iter, random_state=random_state)
+def perform_tsne(embeddings, perplexity=30, n_iter=4000, random_state=1): 
+    tsne = TSNE(n_iter=n_iter, random_state=random_state, learning_rate='auto', init='pca')
     embeddings_2d = tsne.fit_transform(embeddings)
     return embeddings_2d
 
@@ -22,12 +22,16 @@ if __name__ == "__main__":
     embeddings_pickle_path = "embeddings.pkl"
     labels_pickle_path = "embeddings_label.pkl"
 
-    embeddings, labels = load_data_from_pickle(embeddings_pickle_path, labels_pickle_path)
-    states = [0, 1, 2, 3]
+    old_embeddings, labels = load_data_from_pickle(embeddings_pickle_path, labels_pickle_path)
+    keep_idx = np.logical_or(labels < 4, labels > 900).reshape(-1)
+    embeddings = old_embeddings[keep_idx, :]
+    labels = labels[keep_idx, :]
+    states = [0,5,2,3]
+    # states = [0]
     img_idx = 1
     for state_i in range(len(states)):
         postns = perform_tsne(embeddings, random_state=states[state_i]) # len, 2
-        
+        # postns = postns[keep_idx]
         # Calculate the centroid of the chosen class
         chosen_class = 0
         chosen_class_indices = labels == chosen_class
@@ -35,8 +39,12 @@ if __name__ == "__main__":
         centroid = np.mean(class_embs, axis=0)
 
         unique_labels = np.unique(labels)
-        num_classes = len(unique_labels)
-        colors = plt.cm.viridis(np.linspace(0, 1, num_classes))
+        # num_classes = len(unique_labels)
+        # colors = plt.cm.Spectral(np.linspace(0, 1, num_classes))
+        colors = ['green', 'cyan', 'orange', 'blue', 'gray', 'yellow']
+        # # colors = plt.cm.viridis(num_classes)
+        # colors = plt.cm.get_cmap(name=None, lut=num_classes)
+        # print((labels == 998).reshape(-1).shape)
         random_pt_x, random_pt_y = postns[(labels == 998).reshape(-1)][0]
         plt.rcParams['font.family'] = 'Times New Roman'
         cur_postns = postns
@@ -44,13 +52,13 @@ if __name__ == "__main__":
         subplot = plt.subplot(2, 2, img_idx)
         img_idx += 1
         
-        for i in range(num_classes):
+        for i in range(4):
             indices = (labels == unique_labels[i]).reshape(-1)
 
-            subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=4, alpha=0.3)
-        
-        subplot.scatter(random_pt_x, random_pt_y, c='blue', marker='o', s=100, label=f'Point P in Class M')
-        subplot.scatter(centroid[0], centroid[1], c='red', marker='v', s=250, label=f'Centroid of M')
+            subplot.scatter(cur_postns[indices, 0], cur_postns[indices, 1], c=[colors[i]], s=4, alpha=0.6)
+
+        subplot.scatter(random_pt_x, random_pt_y, c='blue', marker='o', s=100, label='Point P in Class M')
+        subplot.scatter(centroid[0], centroid[1], c='red', marker='v', s=250, label='Centroid of M')
 
         expansion_idx = (labels == 999).reshape(-1)
         expansions = postns[expansion_idx]

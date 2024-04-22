@@ -71,7 +71,7 @@ class FSLTrainer(Trainer):
     
     def train(self):
         args = self.args
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+        loaded_dict = torch.load(args.model_path, map_location='cuda:1')
         if 'state_dict' in loaded_dict:
             loaded_dict = loaded_dict['state_dict']
         else:

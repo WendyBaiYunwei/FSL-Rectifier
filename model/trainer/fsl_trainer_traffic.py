@@ -171,7 +171,7 @@ class FSLTrainer(Trainer):
         picker = picker.model.gen
         self.picker = picker
 
-        loaded_dict = torch.load(args.model_path, map_location='cuda:0')
+        loaded_dict = torch.load(args.model_path, map_location='cuda:1')
         if 'params' in loaded_dict:
             loaded_dict = loaded_dict['params']
         else:

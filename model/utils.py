@@ -184,7 +184,7 @@ def get_command_line_parser():
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--random_picker', action='store_true', default=True)
     parser.add_argument('--qry_expansion', type=int, default=0)
-    parser.add_argument('--spt_expansion', type=int, default=1)
+    parser.add_argument('--spt_expansion', type=int, default=0)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
     

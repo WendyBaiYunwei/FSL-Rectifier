@@ -132,6 +132,7 @@ class FSLTrainer(Trainer):
 
         torch.save(self.trlog, osp.join(args.save_path, 'trlog'))
         self.save_model('epoch-last')
+        print('done training. model saved')
 
     def evaluate(self, data_loader):
         args = self.args

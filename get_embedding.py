@@ -10,7 +10,7 @@ import argparse
 import torch
 from model.models.protonet import ProtoNet
 
-sample_iters = 2000
+sample_iters = 4000
 path = 'animals_conv4_checkpoint.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
@@ -78,7 +78,7 @@ for i, data in enumerate(loader):
         print(i)
     img = data[0].cuda()
     label = data[1].detach().cpu()
-    keep_idx = label < 10
+    keep_idx = label < 4
 
     img = img[keep_idx]
     if len(img) == 0:
@@ -98,14 +98,14 @@ for i, data in enumerate(loader):
         labels.append(label.detach().cpu())
         need_expansion = False
 
-        crop_expansion = get_augmentations(reconstructed_img.unsqueeze(0), AUGMENTATION_SIZE, 'crop+rotate')
+        # crop_expansion = get_augmentations(reconstructed_img.unsqueeze(0), AUGMENTATION_SIZE, 'crop+rotate')
 
         expansion = trainer.model.pick_animals(picker, img, train_loader, expansion_size=AUGMENTATION_SIZE,\
                                                 random=False, get_original=False, type='image_translator')
 
-        embedding = model(torch.cat([crop_expansion, expansion], dim=0), get_feature=True)
+        embedding = model(torch.cat([reconstructed_img.repeat(5,1,1,1), expansion], dim=0), get_feature=True).reshape(2, -1, 64).mean(0)
         embeddings.append(embedding.detach().cpu())
-        label = torch.full((expansion_size*2,), 999)
+        label = torch.full((AUGMENTATION_SIZE,), 999)
         labels.append(label.detach().cpu())
 
 embeddings = np.concatenate(embeddings)
