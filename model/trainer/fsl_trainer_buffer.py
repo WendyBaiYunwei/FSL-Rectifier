@@ -50,6 +50,7 @@ class FSLTrainer(Trainer):
             width=128,
             crop=True,
             num_workers=4,
+            return_paths=True,
             dataset=config['dataset'])
         self.model, self.para_model = prepare_model(args)
         self.optimizer, self.lr_scheduler = prepare_optimizer(self.model, args)
@@ -182,6 +183,7 @@ class FSLTrainer(Trainer):
     def evaluate_test(self):
         # restore model args
         args = self.args
+        aug_type = args.aug_type
         from model.image_translator.trainer import Translator_Trainer
         trainer = Translator_Trainer(self.config)
         trainer.cuda()
@@ -211,11 +213,8 @@ class FSLTrainer(Trainer):
         self.model.load_state_dict(new_params) 
         self.model.eval()
         baseline = np.zeros((args.num_eval_episodes, 2)) 
-        i2name = {0: 'image_translator'}
 
-        expansion_res = []
-        for i in i2name:
-            expansion_res.append(np.zeros((args.num_eval_episodes, 2))) # loss and acc
+        expansion_res = np.zeros((args.num_eval_episodes, 2)) # loss and acc
         label = torch.arange(args.eval_way, dtype=torch.int16).repeat(args.eval_query)
         label = label.type(torch.LongTensor)
         if torch.cuda.is_available():
@@ -226,7 +225,7 @@ class FSLTrainer(Trainer):
         old_shot = args.eval_shot
         old_qry = args.eval_query
         with torch.no_grad():
-            for i, batch in enumerate(self.test_loader_fsl):
+            for i, batch in tqdm(enumerate(self.test_loader_fsl)):
                 if i % 100 == 0:
                     print(i)
                 if i >= args.num_eval_episodes:
@@ -240,72 +239,75 @@ class FSLTrainer(Trainer):
 
                 for img_i in range(len(new_data)):
                     img_name = paths[img_i]
-                    new_data[img_i] = get_recon(self.config, img_name)
+                    new_data[img_i] = get_recon(img_name)
                 logits = self.model(new_data)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
                 baseline[i-1, 0] = loss.item()
                 baseline[i-1, 1] = acc
 
-                for type_i in i2name:
-                    name = i2name[type_i]
+                
+                original_spt = data[:5, :, :, :]
+                reconstructed_spt = new_data[:5, :, :, :]
 
-                    original_spt = data[:5, :, :, :]
-                    reconstructed_spt = new_data[:5, :, :, :]
+                img_names = paths[:5]
+                if spt_expansion == 0 and self.args.add_transform == None:
+                    combined_spt = reconstructed_spt
+                elif self.args.add_transform and \
+                    aug_type in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data:
+                    expanded_spt = self.get_class_expansion(picker, original_spt,\
+                            spt_expansion, img_names = img_names, type=aug_type)
+                    additional_spt = self.get_class_expansion(picker,\
+                            reconstructed_spt, spt_expansion,\
+                            img_names = img_names, type=self.args.add_transform)  
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)
+                elif aug_type in ['sim-mix-up']: # use original data:
+                    expanded_spt = self.get_class_expansion(None, original_spt,\
+                            spt_expansion, img_names=img_names, type=aug_type)
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
+                elif self.args.add_transform:
+                    expanded_spt = self.get_class_expansion(picker, reconstructed_spt,\
+                        spt_expansion, type=aug_type, img_names=img_names) 
+                    additional_spt = self.get_class_expansion(picker, reconstructed_spt,\
+                        spt_expansion, type=self.args.add_transform, img_names=img_names)  
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)                  
+                elif aug_type in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']:
+                    expanded_spt = self.get_class_expansion(picker, original_spt,\
+                        spt_expansion, img_names = img_names, type=aug_type)
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
+                else:
+                    expanded_spt = self.get_class_expansion(picker, reconstructed_spt,\
+                        spt_expansion, img_names = img_names, type=aug_type)
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
 
-                    img_names = paths[:5]
-                    if spt_expansion == 0 and self.args.add_transform == None:
-                        combined_spt = reconstructed_spt
-                    elif self.args.add_transform and \
-                        name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data:
-                        expanded_spt = self.get_class_expansion(picker, original_spt,\
-                             spt_expansion, img_names = img_names, type=name)
-                        additional_spt = self.get_class_expansion(picker,\
-                             reconstructed_spt, spt_expansion,\
-                             img_names = img_names, type=self.args.add_transform)  
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)
-                    elif self.args.add_transform:
-                        expanded_spt = self.get_class_expansion(picker, reconstructed_spt,\
-                         spt_expansion, type=name) 
-                        additional_spt = self.get_class_expansion(picker, reconstructed_spt,\
-                         spt_expansion, type=name)  
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt, additional_spt], dim=0)                  
-                    elif name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']:
-                        expanded_spt = self.get_class_expansion(picker, original_spt,\
-                         spt_expansion, img_names = img_names, type=name)
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
-                    else:
-                        expanded_spt = self.get_class_expansion(picker, reconstructed_spt,\
-                         spt_expansion, img_names = img_names, type=name)
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
+                original_qry = new_data[5:, :, :, :]
+                new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2],\
+                    data.shape[3]).cuda()
 
-                    original_qry = new_data[5:, :, :, :]
-                    new_qries = torch.empty(old_qry, 5 * qry_expansion, data.shape[1], data.shape[2],\
-                     data.shape[3]).cuda()
-
-                    k = 0
-                    if name in ['image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: # use original data
-                        for class_chunk_i in range(5, len(data), 5):
-                            class_chunk = data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion,\
-                            img_names = img_names, type=name)
-                            k += 1
-                    else:# use restructured data
-                        for class_chunk_i in range(5, len(new_data), 5):
-                            class_chunk = new_data[class_chunk_i:class_chunk_i+5]
-                            new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=name)
-                            k += 1
-                    assert k == old_qry
-                    new_qries = new_qries.flatten(end_dim=1)
-                    expanded_data = torch.cat([combined_spt, original_qry, new_qries], dim=0)
-                    if self.args.add_transform:
-                        logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion*2)
-                    else:
-                        logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
-                    loss = F.cross_entropy(logits, label)
-                    acc = count_acc(logits, label)
-                    expansion_res[type_i][i-1, 0] = loss.item()
-                    expansion_res[type_i][i-1, 1] = acc
+                k = 0
+                if aug_type in ['image_translator', 'mix-up',  'sim-mix-up', 'random-mix-up', 'random-image_translator']: # use original data
+                    for class_chunk_i in range(5, len(data), 5):
+                        class_chunk = data[class_chunk_i:class_chunk_i+5]
+                        new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion,\
+                        img_names = img_names, type=aug_type)
+                        k += 1
+                else:# use restructured data
+                    for class_chunk_i in range(5, len(new_data), 5):
+                        class_chunk = new_data[class_chunk_i:class_chunk_i+5]
+                        new_qries[k] = self.get_class_expansion(picker, class_chunk, qry_expansion, type=aug_type,\
+                            img_names=img_names)
+                        k += 1
+                assert k == old_qry
+                new_qries = new_qries.flatten(end_dim=1)
+                expanded_data = torch.cat([combined_spt, original_qry, new_qries], dim=0)
+                if self.args.add_transform:
+                    logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion*2)
+                else:
+                    logits = self.model(expanded_data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
+                loss = F.cross_entropy(logits, label)
+                acc = count_acc(logits, label)
+                expansion_res[i-1, 0] = loss.item()
+                expansion_res[i-1, 1] = acc
 
         assert(i == baseline.shape[0])
         vl, _ = compute_confidence_interval(baseline[:,0])
@@ -314,30 +316,35 @@ class FSLTrainer(Trainer):
         result_str = ''
         result_str += 'Baseline Test acc={:.4f} + {:.4f}\n'.format(va, vap)
 
-        for type_i in i2name:
-            name = i2name[type_i]
-            vl, _ = compute_confidence_interval(expansion_res[type_i][:,0])
-            va, vap = compute_confidence_interval(expansion_res[type_i][:,1])
-            
-            result_str += f'{name} Test acc={va} + {vap}\n'
+        vl, _ = compute_confidence_interval(expansion_res[:,0])
+        va, vap = compute_confidence_interval(expansion_res[:,1])
+        
+        result_str += f'{aug_type} Test acc={va} + {vap}\n'
 
-        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-{args.\
-            add_transform}-{args.spt_expansion}-{args.qry_expansion}-record.txt', 'w') as file:
+        with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-' +\
+        f'{args.add_transform}-{args.spt_expansion}-{args.qry_expansion}-record.txt', 'w') as file:
             file.write(result_str)
         return vl, va, vap
     
-    # input 01234, return 012340123401234
+    # input (filename) 01234, return 012340123401234
     # 0: 'oracle', 1: 'mix_up', 2: 'affine', 3: 'color', 4: 'crops_flip_scale', 5: 'image_translator'
     def get_class_expansion(self, picker, data, expansion, type='image_translator', img_names=''):
         expanded = torch.empty(5, expansion, data.shape[1], data.shape[2], data.shape[3]).cuda()
         for class_i in range(5):
-            img = data[class_i].unsqueeze(0)
-            if type == 'image_translator' or type == 'mix-up':
-                class_expansions = get_trans(self.config, img_names[class_i], expansion_size=expansion)
+            img = img_names[class_i]
+            img_data = data[class_i, :, :, :]
+            if type == 'image_translator':
+                class_expansions = get_trans(img_names[class_i], expansion_size=expansion)
             elif type == 'random-mix-up' or type == 'random-image_translator':
-                class_expansions = self.trainer.model.pick_animals(self.picker, img, self.train_loader_image_translator, \
+                class_expansions = self.trainer.model.pick_animals_buffer(self.picker, img_data, img, self.train_loader_image_translator, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, type=type)
-            else:
+            elif type == 'mix-up':
+                class_expansions = self.trainer.model.pick_animals_buffer(self.picker, img_data, img, self.train_loader_image_translator, \
+                        expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
+            elif type == 'sim-mix-up':
+                class_expansions = self.trainer.model.pick_animals_buffer(None, img_data, img, self.train_loader_image_translator, \
+                        expansion_size=expansion, random=False, get_img=False, get_original=False, type=type)
+            else: # traditional augmentation
                 class_expansions = get_augmentations(img, expansion, type, get_img=False)
             expanded[class_i] = class_expansions
         expanded = expanded.swapaxes(0, 1).flatten(end_dim=1)

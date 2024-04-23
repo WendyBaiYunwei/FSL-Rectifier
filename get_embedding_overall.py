@@ -94,7 +94,7 @@ for i, data in enumerate(loader):
     if i >= sample_iters:
         break
 
-    reconstructed_img = get_recon(config, path)
+    reconstructed_img = get_recon(path)
     embedding = model(reconstructed_img.unsqueeze(0), get_feature=True)
     if AUGMENT == True:
         class_expansions = get_trans(config, path, expansion_size=AUGMENTATION_SIZE)

@@ -290,8 +290,18 @@ def get_transform(new_size, height, width):
     transform = transforms.Compose(transform_list)
     return transform
 
+def get_orig(img_name):
+    conf = get_config('animals.yaml')
+    img_name = '.'.join(img_name.split('.')[:-1])
+    name = img_name + '.jpg'
+    image = default_loader(name)
+    transform = get_transform(conf['new_size'],\
+         conf['crop_image_height'], conf['crop_image_width'])
+    image = transform(image).cuda()
+    return image # 1,3,128,128
 
-def get_recon(conf, img_name):
+def get_recon(img_name):
+    conf = get_config('animals.yaml')
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + f'_recon.jpg'
     image = default_loader(name)
@@ -300,7 +310,8 @@ def get_recon(conf, img_name):
     image = transform(image).cuda()
     return image # 1,3,128,128
 
-def get_trans(conf, img_name, expansion_size):
+def get_trans(img_name, expansion_size):
+    conf = get_config('animals.yaml')
     images = torch.empty(expansion_size, 3, conf['crop_image_height'],\
         conf['crop_image_width']).cuda()
     img_name = '.'.join(img_name.split('.')[:-1])

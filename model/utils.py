@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 from torchvision import transforms
 import torch.nn.functional as F
+import cv2
 
 def one_hot(indices, depth):
     """
@@ -65,6 +66,44 @@ class Averager():
     def item(self):
         return self.v
 
+def get_sim_scores_orb(qry, nbs):
+    query_image = cv2.imread(qry, cv2.IMREAD_GRAYSCALE)
+    new_height = 84
+    new_width = 84
+    query_image = cv2.resize(query_image, (new_width, new_height))
+
+    # Initialize feature extractor
+    orb = cv2.SIFT_create()
+
+    # Extract keypoints and descriptors from the query image
+    keypoints_query, descriptors_query = orb.detectAndCompute(query_image, None)
+
+    # Initialize a brute-force matcher
+    bf = cv2.BFMatcher()
+
+    scores = []
+    
+    
+    # Iterate through dataset images
+    for image_path in nbs:
+        # Load dataset image
+        dataset_image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        dataset_image = cv2.resize(dataset_image, (new_width, new_height))
+        # exit()
+        
+        # Extract keypoints and descriptors from the dataset image
+        keypoints_dataset, descriptors_dataset = orb.detectAndCompute(dataset_image, None)
+        min_length = min(len(descriptors_dataset), len(descriptors_query))
+        descriptors_query_clipped = descriptors_query[:min_length]
+        descriptors_dataset = descriptors_dataset[:min_length]
+        # Match descriptors between query and dataset images
+        matches = bf.match(descriptors_query_clipped, descriptors_dataset)
+        
+        # Calculate the similarity score (number of matches)
+        score = len(matches)
+        scores.append(score)
+
+    return torch.tensor(scores).cuda()
 
 def count_acc(logits, label):
     pred = torch.argmax(logits, dim=1)
@@ -175,7 +214,6 @@ def get_command_line_parser():
     parser.add_argument('--gpu', default='0')
     parser.add_argument('--init_weights', type=str, default=None)
     
-    # usually untouched parameters
     parser.add_argument('--mom', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=0.0005) # we find this weight decay value works the best
     parser.add_argument('--num_workers', type=int, default=4)
@@ -187,7 +225,7 @@ def get_command_line_parser():
     parser.add_argument('--spt_expansion', type=int, default=0)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
-    
+    parser.add_argument('--aug_type', type=str, choices=['image_translator', 'mix-up', 'sim-mix-up'], default=None)
     return parser
 
 def get_augmentations(img, expansion, type, get_img=False):
