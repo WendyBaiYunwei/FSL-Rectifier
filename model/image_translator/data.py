@@ -39,27 +39,35 @@ class ImageLabelFilelist(data.Dataset):
         self.root = root
         self.im_list = filelist_reader(os.path.join(filelist))
         self.transform = transform
-        if dataset == 'Animals':
+        if dataset == 'Animals' or dataset == 'cub':
             self.loader = loader
         elif dataset == 'Traffic':
             self.loader = transform_loader
         else:
-            'dataset not found'
-        labels = [path.split('/')[0] for path in self.im_list]
+            exit('dataset not found')
+        if dataset == 'cub':
+            labels = [path.split(',')[1] for path in self.im_list]
+        else:
+            labels = [path.split('/')[0] for path in self.im_list]
         self.classes = sorted(list(set(labels)))
         self.class_to_idx = {self.classes[i]: i for i in
                         range(len(self.classes))}
         k = -1
-        class_name = ''
+        seen_class_names = []
         str_to_idx = {}
         for i in range(len(labels)):
-            if labels[i] != class_name:
+            if labels[i] not in seen_class_names:
+                seen_class_names.append(labels[i])
                 k += 1
-            class_name = labels[i]
-            str_to_idx[class_name] = k
+            str_to_idx[labels[i]] = k
+            
         self.labels = [str_to_idx[str_label] for str_label in labels]
-        self.imgs = [(im_path, self.class_to_idx[im_path.split('/')[0]]) for
-                     im_path in self.im_list]
+        if dataset == 'cub':
+            self.imgs = [(im_path.split(',')[0], self.class_to_idx[im_path.split(',')[1]]) for
+                        im_path in self.im_list]
+        else:
+            self.imgs = [(im_path, self.class_to_idx[im_path.split('/')[0]]) for
+                        im_path in self.im_list]
         self.return_paths = return_paths
         print('Data loader')
         print("\tRoot: %s" % root)

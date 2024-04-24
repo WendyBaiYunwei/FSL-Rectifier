@@ -12,8 +12,10 @@ if __name__ == '__main__':
     args = postprocess_args(parser.parse_args())
     if args.dataset == 'Animals':
         config = get_config('animals.yaml')
-    else:
+    elif args.dataset == 'Traffic':
         config = get_config('traffic.yaml')
+    elif args.dataset == 'cub':
+        config = get_config('cub.yaml')
     config['way_size'] = args.way
     config['batch_size'] = args.eval_query + args.eval_shot
     config['eval_shot'] = args.eval_shot

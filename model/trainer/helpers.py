@@ -35,10 +35,7 @@ class MultiGPUDataloader:
         return
 
 def get_dataloader(args):
-    if args.dataset == 'MiniImageNet':
-        # Handle MiniImageNet
-        from model.dataloader.mini_imagenet import MiniImageNet as Dataset
-    elif args.dataset == 'CUB':
+    if args.dataset == 'cub':
         from model.dataloader.cub import CUB as Dataset
     elif args.dataset == 'TieredImageNet':
         from model.dataloader.tiered_imagenet import tieredImageNet as Dataset

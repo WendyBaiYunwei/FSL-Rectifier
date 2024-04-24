@@ -1,4 +1,3 @@
-
 import os
 import yaml
 import time
@@ -35,7 +34,7 @@ def loader_from_list(
         return_paths=False,
         drop_last=True,
         dataset='Animals'):
-    transform = get_transform(new_size, height, width)
+    transform = get_transform(new_size, height, width, dataset)
 
     dataset = ImageLabelFilelist(root,
                                 file_list,
@@ -105,7 +104,7 @@ def get_dichomy_loader(
         n_cls=5,
         dataset='Animals'):
 
-    transform = get_transform(new_size, height, width)
+    transform = get_transform(new_size, height, width, dataset)
     dataset = ImageLabelFilelist(root,
                                  file_list,
                                  transform,
@@ -124,6 +123,8 @@ def get_dichomy_loader(
 
     return loader
 
+
+
 class CategoriesSampler():
     def __init__(self, label, n_batch, n_cls, n_per):
         self.n_batch = n_batch
@@ -136,6 +137,7 @@ class CategoriesSampler():
             ind = np.argwhere(label == i).reshape(-1)
             ind = torch.from_numpy(ind)
             self.m_ind.append(ind)
+        # len(self.m_ind) = num_classes
 
     def __len__(self):
         return self.n_batch
@@ -283,30 +285,37 @@ def get_pretrain_loaders(conf):
 
     return train_loader
 
-def get_transform(new_size, height, width):
-    transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
-            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+def get_transform(new_size, height, width, dataset):
+    if dataset == 'cub':
+        transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
+            transforms.ToTensor(), transforms.Normalize(np.array([0.485, 0.456, 0.406]),
+                                     np.array([0.229, 0.224, 0.225]))]
+    else:
+        transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
+                transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
     transform = transforms.Compose(transform_list)
     return transform
 
+# for animals dataset only
 def get_orig(img_name):
     conf = get_config('animals.yaml')
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + '.jpg'
     image = default_loader(name)
     transform = get_transform(conf['new_size'],\
-         conf['crop_image_height'], conf['crop_image_width'])
+         conf['crop_image_height'], conf['crop_image_width'], dataset='Animals')
     image = transform(image).cuda()
     return image # 1,3,128,128
 
+# for animals dataset only
 def get_recon(img_name):
     conf = get_config('animals.yaml')
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + f'_recon.jpg'
     image = default_loader(name)
     transform = get_transform(conf['new_size'],\
-         conf['crop_image_height'], conf['crop_image_width'])
+         conf['crop_image_height'], conf['crop_image_width'], dataset='Animals')
     image = transform(image).cuda()
     return image # 1,3,128,128
 

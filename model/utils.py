@@ -8,6 +8,7 @@ import numpy as np
 from torchvision import transforms
 import torch.nn.functional as F
 import cv2
+from model.image_translator.utils import get_recon, get_orig
 
 def one_hot(indices, depth):
     """
@@ -66,6 +67,17 @@ class Averager():
     def item(self):
         return self.v
 
+def get_sim_scores_model(qry, nbs, model):
+    with torch.no_grad():
+        features = model(torch.cat([qry, nbs]), get_feature=True)
+    qry = features[0]
+    nbs = features[1:]
+    similarities = []
+    for nb in nbs:
+        similarity = F.cosine_similarity(qry, nb, dim=0)
+        similarities.append(similarity.item())
+    return torch.tensor(similarities).cuda()
+
 def get_sim_scores_orb(qry, nbs):
     query_image = cv2.imread(qry, cv2.IMREAD_GRAYSCALE)
     new_height = 84
@@ -93,14 +105,19 @@ def get_sim_scores_orb(qry, nbs):
         
         # Extract keypoints and descriptors from the dataset image
         keypoints_dataset, descriptors_dataset = orb.detectAndCompute(dataset_image, None)
-        min_length = min(len(descriptors_dataset), len(descriptors_query))
-        descriptors_query_clipped = descriptors_query[:min_length]
-        descriptors_dataset = descriptors_dataset[:min_length]
-        # Match descriptors between query and dataset images
-        matches = bf.match(descriptors_query_clipped, descriptors_dataset)
+
+        if descriptors_dataset is None or descriptors_query is None:
+            print('SIFT failed for one pair of comparison')
+            score = 0
+        else:
+            min_length = min(len(descriptors_dataset), len(descriptors_query))
+            descriptors_query_clipped = descriptors_query[:min_length]
+            descriptors_dataset = descriptors_dataset[:min_length]
+            # Match descriptors between query and dataset images
+            matches = bf.match(descriptors_query_clipped, descriptors_dataset)
         
-        # Calculate the similarity score (number of matches)
-        score = len(matches)
+            # Calculate the similarity score (number of matches)
+            score = len(matches)
         scores.append(score)
 
     return torch.tensor(scores).cuda()
@@ -182,14 +199,14 @@ def get_command_line_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=30)
     parser.add_argument('--episodes_per_epoch', type=int, default=100)
-    parser.add_argument('--num_eval_episodes', type=int, default=600)
+    parser.add_argument('--num_eval_episodes', type=int, default=100)
     parser.add_argument('--model_class', type=str, default='FEAT', 
                         choices=['MatchNet', 'ProtoNet', 'BILSTM', 'DeepSet', 'GCN', 'FEAT', 'FEATSTAR', 'SemiFEAT', 'SemiProtoFEAT']) # None for MatchNet or ProtoNet
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
     parser.add_argument('--backbone_class', type=str, default='ConvNet',
                         choices=['ConvNet', 'Res12', 'Res18', 'WRN'])
     parser.add_argument('--dataset', type=str, default='Animals',
-                        choices=['MiniImageNet', 'TieredImageNet', 'CUB', 'Animals', 'Traffic'])
+                        choices=['cub', 'Animals', 'Traffic'])
     
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--eval_way', type=int, default=5)
@@ -202,7 +219,7 @@ def get_command_line_parser():
     parser.add_argument('--temperature2', type=float, default=1)  # the temperature in the  
      
     # optimization parameters
-    parser.add_argument('--orig_imsize', type=int, default=-1) # -1 for no cache, and -2 for no resize, only for MiniImageNet and CUB
+    parser.add_argument('--orig_imsize', type=int, default=-1) # -1 for no cache, and -2 for no resize, only for cub and CUB
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--lr_mul', type=float, default=10)    
     parser.add_argument('--lr_scheduler', type=str, default='step', choices=['multistep', 'step', 'cosine'])
@@ -225,7 +242,8 @@ def get_command_line_parser():
     parser.add_argument('--spt_expansion', type=int, default=0)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
-    parser.add_argument('--aug_type', type=str, choices=['image_translator', 'mix-up', 'sim-mix-up'], default=None)
+    parser.add_argument('--aug_type', type=str, choices=['random-image_translator', 'image_translator', 'mix-up', \
+        'random-mix-up', 'sim-mix-up'], default=None)
     return parser
 
 def get_augmentations(img, expansion, type, get_img=False):
@@ -247,3 +265,104 @@ def get_augmentations(img, expansion, type, get_img=False):
             image = F.to_pil_image(augmented_image)
             image.save(f'augmented_image_{expansion_i}.jpg')
     return expansions
+
+def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = False, \
+    random=False, img_id='', get_original=True, augtype='mix-up', picker=None): 
+    if expansion_size == 0:
+        get_original = True
+    candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+    nb_images = candidate_neighbours[0].cuda() # extracts img from img+label+name
+    candidate_neighbours = candidate_neighbours[2] # extracts name from img+label+name
+    
+    assert len(nb_images) >= expansion_size
+    if picker is not None:
+        with torch.no_grad():
+            qry_features = picker.enc_content(qry_img).mean((1,2)).reshape(1, -1) # batch=1, feature_size
+            nb_features = picker.enc_content(nb_images).mean((2,3))
+            nb_features_trans = nb_features.transpose(1,0)
+            scores = torch.mm(qry_features, nb_features_trans).squeeze() # best (lower KL divergence) should be in front after sorting
+    else:
+        scores = get_sim_scores_model(qry_img.unsqueeze(0), nb_images, model)
+    if random == False and picker is not None:
+        scores, idxs = torch.sort(scores, descending=False) 
+        idxs = idxs.long()
+        selected_nbs = [candidate_neighbours[i.item()] for i in idxs]
+        selected_nbs = selected_nbs[:expansion_size]
+    elif random == False and picker is None:
+        scores, idxs = torch.sort(scores, descending=True)
+        # print(scores[expansion_size - 1])
+        if scores[expansion_size - 1] < 0.8:
+            return None
+        else:
+            idxs = idxs.long()
+            selected_nbs = nb_images.index_select(dim=0, index=idxs)
+            selected_nbs = selected_nbs[:expansion_size]
+    else:
+        selected_nbs = candidate_neighbours[:expansion_size]
+    if picker is not None: # animal dataset
+        qry = get_orig(qry)
+        if get_original == True:
+            translations = [qry]
+        else:
+            translations = []
+        for selected_i in range(expansion_size):
+            nb_name = selected_nbs[selected_i]
+            nb = get_orig(nb_name)
+            translation = 0.5 * (nb + qry)
+            translations.append(translation)
+    else:
+        qry = qry_img
+        if get_original == True:
+            translations = [qry]
+        else:
+            translations = []
+        for selected_i in range(expansion_size):
+            nb = selected_nbs[selected_i]
+            translation = 0.5 * (nb + qry)
+            translations.append(translation)
+
+    if get_img == True:
+        return translations
+    else:
+        return torch.stack(translations).squeeze()
+        
+def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get_img = False, \
+    random=False, img_id='', get_original=True, augtype='image_translator'): 
+    if expansion_size == 0:
+        get_original = True
+    candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+    candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
+    assert len(candidate_neighbours) >= expansion_size
+    with torch.no_grad():
+        qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
+        nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
+        nb_features_trans = nb_features.transpose(1,0)
+        scores = torch.mm(qry_features, nb_features_trans).squeeze() # q qries, n neighbors
+    if random == False:
+        scores, idxs = torch.sort(scores, descending=False) # best (lower KL divergence) in front
+        idxs = idxs.long()
+        selected_nbs = candidate_neighbours.index_select(dim=0, index=idxs)
+        selected_nbs = selected_nbs[:expansion_size, :, :, :]
+    else:
+        selected_nbs = candidate_neighbours[:expansion_size, :, :, :]
+    class_code = translator.compute_k_style(qry, 1)
+    qry = translator.translate_simple(qry, class_code)
+    if get_original == True:
+        translations = [qry]
+    else:
+        translations = []
+    
+    
+    for selected_i in range(expansion_size):
+        nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
+        if augtype == 'image_translator' or augtype == 'random-image_translator':
+            translation = translator.translate_simple(nb, class_code)
+        elif augtype == 'mix-up' or augtype == 'random-mix-up':
+            nb = translator.translate_simple(nb, translator.compute_k_style(nb, 1))
+            translation = 0.5 * (nb + qry)
+        translations.append(translation)
+
+    if get_img == True:
+        return translations
+    else:
+        return torch.stack(translations).squeeze()

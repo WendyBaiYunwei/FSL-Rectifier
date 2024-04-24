@@ -39,9 +39,9 @@ pool_size: 20                 # candidate neighbour size
 way_size: 5
 num_workers: 4
 batch_size: 32
-new_size: 84                 
-crop_image_height: 84        # random crop image of this height
-crop_image_width: 84         # random crop image of this width
+new_size: 140                 
+crop_image_height: 128        # random crop image of this height
+crop_image_width: 128        # random crop image of this width
 data_folder_train: /mnt/hdd/yw/animals
 data_list_train: /mnt/hdd/yw/animals/animals_list_train.txt
 data_folder_test: /mnt/hdd/yw/animals
