@@ -285,47 +285,55 @@ def get_pretrain_loaders(conf):
 
     return train_loader
 
-def get_transform(new_size, height, width, dataset):
+def get_transform(new_size, height, width, dataset='Animals'):
+    transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
+        transforms.ToTensor()]
     if dataset == 'cub':
-        transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
-            transforms.ToTensor(), transforms.Normalize(np.array([0.485, 0.456, 0.406]),
-                                     np.array([0.229, 0.224, 0.225]))]
+        norm = transforms.Normalize(np.array([0.485, 0.456, 0.406]),
+                                     np.array([0.229, 0.224, 0.225]))
+        transform_list.append(norm)
+    elif dataset == 'Animals':
+        norm = transforms.Normalize(np.array([0.5, 0.5, 0.5]),
+                                     np.array([0.5, 0.5, 0.5]))
+        transform_list.append(norm)
     else:
-        transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
-                transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+        raise NotImplementedError('unknown dataset')
 
     transform = transforms.Compose(transform_list)
     return transform
 
-# for animals dataset only
-def get_orig(img_name):
-    conf = get_config('animals.yaml')
+def get_sim(img_name, dataset):
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + '.jpg'
     image = default_loader(name)
-    transform = get_transform(conf['new_size'],\
-         conf['crop_image_height'], conf['crop_image_width'], dataset='Animals')
+    transform = get_transform(84, 84, 84, dataset=dataset)
+    image = transform(image).cuda()
+    return image # 1,3,128,128
+
+# for animals dataset only
+def get_orig(img_name):
+    img_name = '.'.join(img_name.split('.')[:-1])
+    name = img_name + '.jpg'
+    image = default_loader(name)
+    transform = get_transform(140, 128, 128, dataset='Animals')
     image = transform(image).cuda()
     return image # 1,3,128,128
 
 # for animals dataset only
 def get_recon(img_name):
-    conf = get_config('animals.yaml')
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + f'_recon.jpg'
     image = default_loader(name)
-    transform = get_transform(conf['new_size'],\
-         conf['crop_image_height'], conf['crop_image_width'], dataset='Animals')
+    transform = get_transform(140, 128, 128, dataset='Animals')
     image = transform(image).cuda()
     return image # 1,3,128,128
 
+# for animals dataset only
 def get_trans(img_name, expansion_size):
     conf = get_config('animals.yaml')
-    images = torch.empty(expansion_size, 3, conf['crop_image_height'],\
-        conf['crop_image_width']).cuda()
+    images = torch.empty(expansion_size, 3, 128, 128).cuda()
     img_name = '.'.join(img_name.split('.')[:-1])
-    transform = get_transform(conf['new_size'],\
-        conf['crop_image_height'], conf['crop_image_width'])
+    transform = get_transform(140, 128, 128)
     for i in range(1, expansion_size + 1):
         name = img_name + f'_trans{i}.jpg'
         image = default_loader(name)

@@ -266,7 +266,7 @@ def get_augmentations(img, expansion, type, get_img=False):
             image.save(f'augmented_image_{expansion_i}.jpg')
     return expansions
 
-def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = False, \
+def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = False, \
     random=False, img_id='', get_original=True, augtype='mix-up', picker=None): 
     if expansion_size == 0:
         get_original = True
@@ -282,6 +282,7 @@ def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = 
             nb_features_trans = nb_features.transpose(1,0)
             scores = torch.mm(qry_features, nb_features_trans).squeeze() # best (lower KL divergence) should be in front after sorting
     else:
+        qry_img = qry_img.squeeze()
         scores = get_sim_scores_model(qry_img.unsqueeze(0), nb_images, model)
     if random == False and picker is not None:
         scores, idxs = torch.sort(scores, descending=False) 
@@ -291,12 +292,12 @@ def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = 
     elif random == False and picker is None:
         scores, idxs = torch.sort(scores, descending=True)
         # print(scores[expansion_size - 1])
-        if scores[expansion_size - 1] < 0.8:
-            return None
-        else:
-            idxs = idxs.long()
-            selected_nbs = nb_images.index_select(dim=0, index=idxs)
-            selected_nbs = selected_nbs[:expansion_size]
+        # if scores[expansion_size - 1] < 0.8:
+        #     return None
+        # else:
+        idxs = idxs.long()
+        selected_nbs = nb_images.index_select(dim=0, index=idxs)
+        selected_nbs = selected_nbs[:expansion_size]
     else:
         selected_nbs = candidate_neighbours[:expansion_size]
     if picker is not None: # animal dataset
@@ -308,7 +309,7 @@ def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = 
         for selected_i in range(expansion_size):
             nb_name = selected_nbs[selected_i]
             nb = get_orig(nb_name)
-            translation = 0.5 * (nb + qry)
+            translation = 0.5*(nb + qry)
             translations.append(translation)
     else:
         qry = qry_img
@@ -318,13 +319,11 @@ def pick_buffer(qry_img, qry, picker_loader, model, expansion_size=0, get_img = 
             translations = []
         for selected_i in range(expansion_size):
             nb = selected_nbs[selected_i]
-            translation = 0.5 * (nb + qry)
+            translation = 0.5*(nb + qry)
             translations.append(translation)
 
-    if get_img == True:
-        return translations
-    else:
-        return torch.stack(translations).squeeze()
+    return torch.stack(translations).squeeze()
+    
         
 def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get_img = False, \
     random=False, img_id='', get_original=True, augtype='image_translator'): 
@@ -359,7 +358,7 @@ def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get
             translation = translator.translate_simple(nb, class_code)
         elif augtype == 'mix-up' or augtype == 'random-mix-up':
             nb = translator.translate_simple(nb, translator.compute_k_style(nb, 1))
-            translation = 0.5 * (nb + qry)
+            translation = 0.5*(nb + qry)
         translations.append(translation)
 
     if get_img == True:

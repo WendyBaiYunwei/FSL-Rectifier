@@ -11,13 +11,13 @@ from model.trainer.helpers import (
     get_dataloader, prepare_model, prepare_optimizer,
 )
 from model.image_translator.utils import (
-    get_recon, get_trans,
+    get_recon, get_trans, get_sim,
     get_train_loaders, get_config, get_dichomy_loader, loader_from_list
 )
 from model.utils import (
     pprint, ensure_path,
     Averager, Timer, count_acc, one_hot,
-    compute_confidence_interval, get_augmentations, pick_buffer, pick_translate
+    compute_confidence_interval, get_augmentations, pick_mixup, pick_translate
 )
 from collections import deque
 from tqdm import tqdm
@@ -380,11 +380,10 @@ class FSLTrainer(Trainer):
                 class_expansions = pick_translate(self.translator, self.picker, img_data, img, self.train_loader_image_translator, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, augtype=augtype)
             elif augtype == 'mix-up': # for animals dataset
-                class_expansions = pick_buffer(img_data, img, self.train_loader_image_translator, model = self.model,\
+                class_expansions = pick_mixup(img_data, img, self.train_loader_image_translator, model = self.model,\
                         expansion_size=expansion, random=False, get_img=False, get_original=False, augtype=augtype, picker=self.picker)
             elif augtype == 'sim-mix-up':
-                class_expansions = pick_buffer(img_data, img, self.train_loader_image_translator, model = self.model,\
-                        expansion_size=expansion, random=False, get_img=False, get_original=False, augtype=augtype)
+                class_expansions = get_sim(img_names[class_i], expansion_size=expansion, dataset=self.args.dataset)
             else: # traditional augmentation
                 class_expansions = get_augmentations(img, expansion, augtype, get_img=False)
             if class_expansions == None:
