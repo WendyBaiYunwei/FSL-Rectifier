@@ -21,3 +21,5 @@ python train_fsl.py  --max_epoch 200 --model_class DeepSets  --backbone_class Re
 
 cannot add transform for sim-mix-up
 test add_transform
+
+f"python get_buffer_mixup_imgs.py --model_class ProtoNet --backbone_class ConvNet --dataset buffer --model_path {paths[2]}",

@@ -337,7 +337,6 @@ class FSLTrainer(Trainer):
                 new_qries = new_qries.flatten(end_dim=1)
 
                 if qry_expansion > 0:
-                    print('one successful expansion')
                     expanded_data = torch.cat([combined_spt, original_qry, new_qries], dim=0)
                 else:
                     expanded_data = torch.cat([combined_spt, original_qry], dim=0)

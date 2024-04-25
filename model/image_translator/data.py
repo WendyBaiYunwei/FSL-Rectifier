@@ -7,7 +7,13 @@ import numpy as np
 
 
 def default_loader(path):
-    image = Image.open(path).convert('RGB')
+    try:
+        image = Image.open(path).convert('RGB')
+    except:
+        image = image.replace('sim0', '')
+        image = image.replace('sim1', '')
+        image = image.replace('sim2', '')
+        image = Image.open(path).convert('RGB')
     return image
 
 def transform_loader(path):
@@ -39,7 +45,7 @@ class ImageLabelFilelist(data.Dataset):
         self.root = root
         self.im_list = filelist_reader(os.path.join(filelist))
         self.transform = transform
-        if dataset == 'Animals' or dataset == 'cub':
+        if dataset in ['Animals', 'cub', 'miniImagenet']:
             self.loader = loader
         elif dataset == 'Traffic':
             self.loader = transform_loader
@@ -47,6 +53,8 @@ class ImageLabelFilelist(data.Dataset):
             exit('dataset not found')
         if dataset == 'cub':
             labels = [path.split(',')[1] for path in self.im_list]
+        elif dataset == 'miniImagenet':
+            labels = [path[:len('n01930112')] for path in self.im_list]
         else:
             labels = [path.split('/')[0] for path in self.im_list]
         self.classes = sorted(list(set(labels)))
@@ -64,6 +72,10 @@ class ImageLabelFilelist(data.Dataset):
         self.labels = [str_to_idx[str_label] for str_label in labels]
         if dataset == 'cub':
             self.imgs = [(im_path.split(',')[0], self.class_to_idx[im_path.split(',')[1]]) for
+                        im_path in self.im_list]
+        elif dataset == 'miniImagenet':
+            self.imgs = [(im_path, \
+                        self.class_to_idx[im_path[:len('n01930112')]]) for
                         im_path in self.im_list]
         else:
             self.imgs = [(im_path, self.class_to_idx[im_path.split('/')[0]]) for

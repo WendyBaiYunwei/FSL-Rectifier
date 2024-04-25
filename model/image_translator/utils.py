@@ -34,8 +34,12 @@ def loader_from_list(
         return_paths=False,
         drop_last=True,
         dataset='Animals'):
-    transform = get_transform(new_size, height, width, dataset)
 
+    if 'buffer' in dataset:
+        transform = get_transform(new_size, height, width, 'buffer')
+    else:
+        transform = get_transform(new_size, height, width, dataset)
+    dataset = dataset.split('-')[0]
     dataset = ImageLabelFilelist(root,
                                 file_list,
                                 transform,
@@ -292,23 +296,32 @@ def get_transform(new_size, height, width, dataset='Animals'):
         norm = transforms.Normalize(np.array([0.485, 0.456, 0.406]),
                                      np.array([0.229, 0.224, 0.225]))
         transform_list.append(norm)
+    elif dataset == 'miniImagenet':
+        norm = transforms.Normalize(np.array([x / 255.0 for x in [120.39586422, 115.59361427, 104.54012653]]),
+                                    np.array([x / 255.0 for x in [70.68188272, 68.27635443, 72.54505529]]))
+        transform_list.append(norm)
     elif dataset == 'Animals':
         norm = transforms.Normalize(np.array([0.5, 0.5, 0.5]),
                                      np.array([0.5, 0.5, 0.5]))
         transform_list.append(norm)
+    elif dataset == 'buffer':
+        pass
     else:
         raise NotImplementedError('unknown dataset')
 
     transform = transforms.Compose(transform_list)
     return transform
 
-def get_sim(img_name, dataset):
+def get_sim(img_name, expansion_size, dataset):
     img_name = '.'.join(img_name.split('.')[:-1])
-    name = img_name + '.jpg'
-    image = default_loader(name)
-    transform = get_transform(84, 84, 84, dataset=dataset)
-    image = transform(image).cuda()
-    return image # 1,3,128,128
+    images = torch.empty(expansion_size, 3, 84, 84).cuda()
+    transform = get_transform(92, 84, 84, dataset)
+    for i in range(expansion_size):
+        name = img_name + f'_sim{i}.jpg'
+        image = default_loader(name)
+        image = transform(image)
+        images[i-1] = image
+    return images
 
 # for animals dataset only
 def get_orig(img_name):
@@ -317,7 +330,7 @@ def get_orig(img_name):
     image = default_loader(name)
     transform = get_transform(140, 128, 128, dataset='Animals')
     image = transform(image).cuda()
-    return image # 1,3,128,128
+    return image
 
 # for animals dataset only
 def get_recon(img_name):
@@ -330,7 +343,6 @@ def get_recon(img_name):
 
 # for animals dataset only
 def get_trans(img_name, expansion_size):
-    conf = get_config('animals.yaml')
     images = torch.empty(expansion_size, 3, 128, 128).cuda()
     img_name = '.'.join(img_name.split('.')[:-1])
     transform = get_transform(140, 128, 128)

@@ -15,7 +15,7 @@ from model.image_translator.utils import loader_from_list, get_config
 
 expansion_size = 3
 
-config = get_config('./cub.yaml') # change to traffic.yaml for traffic
+config = get_config('./miniImagenet.yaml') # change to traffic.yaml for traffic
 config['batch_size'] = 1
 
 parser = get_command_line_parser()
@@ -32,11 +32,11 @@ train_loader_image_translator = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset=config['dataset'])
+    dataset=args.dataset)
 
 testloader = loader_from_list(
-    root=config['data_folder_train'],
-    file_list=config['data_list_train'],
+    root=config['data_folder_test'],
+    file_list=config['data_list_test'],
     batch_size=1,
     new_size=84,
     height=84,
@@ -44,7 +44,7 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset=config['dataset']) # pre-processing mode set to `Animals` to prevent CLAHE transformations for test samples
+    dataset=args.dataset) # pre-processing mode set to `Animals` to prevent CLAHE transformations for test samples
 
 for i, data in enumerate(testloader):
     if i % 10 == 0:
@@ -56,10 +56,14 @@ for i, data in enumerate(testloader):
     model, _ = prepare_model(args)
     imgs = pick_mixup(original_img, paths, train_loader_image_translator, model = model,\
                     expansion_size=expansion_size, random=False, get_img=False, get_original=False, augtype='sim-mix-up')
-        
+    if imgs is None:
+        continue
     # save image
     for selected_i in range(expansion_size):
-        translation = imgs[selected_i]
+        if expansion_size > 1:
+            translation = imgs[selected_i]
+        else:
+            translation = imgs
         image = translation.detach().cpu().squeeze().numpy()
         image = np.transpose(image, (1, 2, 0))
         image = image * 255.0

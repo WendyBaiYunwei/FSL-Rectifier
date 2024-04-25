@@ -206,7 +206,7 @@ def get_command_line_parser():
     parser.add_argument('--backbone_class', type=str, default='ConvNet',
                         choices=['ConvNet', 'Res12', 'Res18', 'WRN'])
     parser.add_argument('--dataset', type=str, default='Animals',
-                        choices=['cub', 'Animals', 'Traffic'])
+                        choices=['cub', 'Animals', 'Traffic', 'cub-buffer', 'miniImagenet', 'miniImagenet-buffer'])
     
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--eval_way', type=int, default=5)
@@ -292,8 +292,8 @@ def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = F
     elif random == False and picker is None:
         scores, idxs = torch.sort(scores, descending=True)
         # print(scores[expansion_size - 1])
-        # if scores[expansion_size - 1] < 0.8:
-        #     return None
+        if scores[expansion_size - 1] < 0.8:
+            return None
         # else:
         idxs = idxs.long()
         selected_nbs = nb_images.index_select(dim=0, index=idxs)

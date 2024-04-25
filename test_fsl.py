@@ -16,6 +16,8 @@ if __name__ == '__main__':
         config = get_config('traffic.yaml')
     elif args.dataset == 'cub':
         config = get_config('cub.yaml')
+    elif args.dataset == 'miniImagenet':
+        config = get_config('miniImagenet.yaml')
     config['way_size'] = args.way
     config['batch_size'] = args.eval_query + args.eval_shot
     config['eval_shot'] = args.eval_shot
