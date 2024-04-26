@@ -33,7 +33,7 @@ def loader_from_list(
         center_crop=False,
         return_paths=False,
         drop_last=True,
-        dataset='Animals'):
+        dataset='animals'):
 
     if 'buffer' in dataset:
         transform = get_transform(new_size, height, width, 'buffer')
@@ -106,7 +106,7 @@ def get_dichomy_loader(
         return_paths=False,
         drop_last=True,
         n_cls=5,
-        dataset='Animals'):
+        dataset='animals'):
 
     transform = get_transform(new_size, height, width, dataset)
     dataset = ImageLabelFilelist(root,
@@ -289,7 +289,7 @@ def get_pretrain_loaders(conf):
 
     return train_loader
 
-def get_transform(new_size, height, width, dataset='Animals'):
+def get_transform(new_size, height, width, dataset='animals'):
     transform_list = [transforms.Resize(new_size), transforms.CenterCrop((height, width)), \
         transforms.ToTensor()]
     if dataset == 'cub':
@@ -300,11 +300,12 @@ def get_transform(new_size, height, width, dataset='Animals'):
         norm = transforms.Normalize(np.array([x / 255.0 for x in [120.39586422, 115.59361427, 104.54012653]]),
                                     np.array([x / 255.0 for x in [70.68188272, 68.27635443, 72.54505529]]))
         transform_list.append(norm)
-    elif dataset == 'Animals':
+    elif dataset == 'animals':
         norm = transforms.Normalize(np.array([0.5, 0.5, 0.5]),
                                      np.array([0.5, 0.5, 0.5]))
         transform_list.append(norm)
     elif dataset == 'buffer':
+        # saved buffer images are not normalized
         pass
     else:
         raise NotImplementedError('unknown dataset')
@@ -315,7 +316,7 @@ def get_transform(new_size, height, width, dataset='Animals'):
 def get_sim(img_name, expansion_size, dataset):
     img_name = '.'.join(img_name.split('.')[:-1])
     images = torch.empty(expansion_size, 3, 84, 84).cuda()
-    transform = get_transform(92, 84, 84, dataset)
+    transform = get_transform(84, 84, 84, dataset)
     for i in range(expansion_size):
         name = img_name + f'_sim{i}.jpg'
         image = default_loader(name)
@@ -328,7 +329,7 @@ def get_orig(img_name):
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + '.jpg'
     image = default_loader(name)
-    transform = get_transform(140, 128, 128, dataset='Animals')
+    transform = get_transform(140, 128, 128, dataset='animals')
     image = transform(image).cuda()
     return image
 
@@ -337,7 +338,7 @@ def get_recon(img_name):
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + f'_recon.jpg'
     image = default_loader(name)
-    transform = get_transform(140, 128, 128, dataset='Animals')
+    transform = get_transform(84, 84, 84, dataset='animals')
     image = transform(image).cuda()
     return image # 1,3,128,128
 
@@ -345,7 +346,7 @@ def get_recon(img_name):
 def get_trans(img_name, expansion_size):
     images = torch.empty(expansion_size, 3, 128, 128).cuda()
     img_name = '.'.join(img_name.split('.')[:-1])
-    transform = get_transform(140, 128, 128)
+    transform = get_transform(84, 84, 84)
     for i in range(1, expansion_size + 1):
         name = img_name + f'_trans{i}.jpg'
         image = default_loader(name)

@@ -184,7 +184,7 @@ class FSLTrainer(Trainer):
         # restore model args
         args = self.args
         augtype = args.aug_type
-        if args.dataset == 'Animals':
+        if args.dataset == 'animals':
             from model.image_translator.trainer import Translator_Trainer
             translator = Translator_Trainer(self.config)
             translator.cuda()
@@ -238,7 +238,7 @@ class FSLTrainer(Trainer):
                     data = batch[0]
                 paths = batch[-1]
 
-                if args.dataset == 'Animals':
+                if args.dataset == 'animals':
                     new_data = torch.empty(data.shape).cuda()
                     for img_i in range(len(new_data)):
                         img_name = paths[img_i]

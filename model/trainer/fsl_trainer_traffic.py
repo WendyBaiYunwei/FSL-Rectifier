@@ -33,7 +33,7 @@ class FSLTrainer(Trainer):
             crop=True,
             num_workers=4,
             n_cls=config['way_size'],
-            dataset='Animals')
+            dataset='animals')
         self.test_loader_transform = loader_from_list(
             root=config['data_folder_test'],
             file_list=config['data_list_test'],

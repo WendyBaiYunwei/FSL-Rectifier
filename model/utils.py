@@ -205,8 +205,8 @@ def get_command_line_parser():
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
     parser.add_argument('--backbone_class', type=str, default='ConvNet',
                         choices=['ConvNet', 'Res12', 'Res18', 'WRN'])
-    parser.add_argument('--dataset', type=str, default='Animals',
-                        choices=['cub', 'Animals', 'Traffic', 'cub-buffer', 'miniImagenet', 'miniImagenet-buffer'])
+    parser.add_argument('--dataset', type=str, default='animals',
+                        choices=['cub', 'animals', 'animals-buffer', 'cub-buffer', 'miniImagenet', 'miniImagenet-buffer'])
     
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--eval_way', type=int, default=5)

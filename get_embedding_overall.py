@@ -15,10 +15,10 @@ from model.models.protonet import ProtoNet
 
 sample_iters = 4000
 AUGMENT = False
-path = 'Animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
+path = 'animals-ConvNet-Pre/0.01_0.1_[75, 150, 300]/checkpoint.pth'
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=128)
-parser.add_argument('--dataset', type=str, default='Animals')    
+parser.add_argument('--dataset', type=str, default='animals')    
 parser.add_argument('--backbone_class', type=str, default='ConvNet', choices=['ConvNet', 'Res12'])
 parser.add_argument('--query', type=int, default=1)    
 parser.add_argument('--init_weights', type=str, default=path)

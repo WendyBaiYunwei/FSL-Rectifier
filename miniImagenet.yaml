@@ -8,7 +8,7 @@ eval_query: 15
 pool_size: 100                 # candidate neighbour size
 way_size: 5
 num_workers: 4
-new_size: 92        
+new_size: 84        
 batch_size: 1         
 crop_image_height: 84        # random crop image of this height
 crop_image_width: 84        # random crop image of this width

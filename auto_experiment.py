@@ -8,18 +8,23 @@ print("CPU Count is :", os.cpu_count())
 paths = [
     'animals_conv4_checkpoint.pth',
     'traffic_conv4_checkpoint.pth',
-    '/mnt/hdd/yw/models/feat/mini-protonet-1-shot.pth',
+    '/mnt/hdd/yw/models/feat/mini-protonet-1-shot.pth', #res12
     '/mnt/hdd/yw/models/feat/feat-1-shot.pth',
-    '/mnt/hdd/yw/models/feat/deepsets-1-shot.pth'
+    '/mnt/hdd/yw/models/feat/deepsets-1-shot.pth',
+    '/home/yunwei/new/FSL-Rectifier/checkpoints/Animals-ProtoNet-ConvNet-05w01s15q-DIS/20_0.5_lr0.0001mul10_step_T164.0T216.0_b1.0_bsz080-NoAug/epoch-last.pth',
+    '/mnt/hdd/yw/models/feat/cub-proto-1shot.pth',
 ]
 
 commands = [
-   f"python test_fsl.py --model_class ProtoNet --backbone_class Res12 --dataset miniImagenet --model_path {paths[2]} --spt_expansion 1 --qry_expansion 1 --aug_type sim-mix-up",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset cub --model_path {paths[-1]} --spt_expansion 1 --qry_expansion 1 --aug_type sim-mix-up",
+   # f"python test_fsl.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals --model_path {paths[-1]} --spt_expansion 1 --qry_expansion 1 --aug_type sim-mix-up",
    # f"python test_fsl.py --model_class ProtoNet--backbone_class ConvNet --dataset Animals --num_eval_episodes 1000 --model_path {paths[0]} --spt_expansion 1 --qry_expansion 0 --add_transform crop+rotate",
    # f"python test_fsl.py --model_class ProtoNet--backbone_class ConvNet --dataset Traffic --num_eval_episodes 1000 --model_path {paths[1]} --spt_expansion 1 --qry_expansion 0 --add_transform original",
    # "python get_embedding.py", 
-   # "python TSNE.py",  
-   # f"python get_buffer_mixup_imgs.py --model_class ProtoNet --backbone_class Res12 --dataset miniImagenet-buffer --model_path {paths[2]}" 
+   # "python TSNE.py", 
+   # f"python get_buffer_mixup_imgs.py --model_class ProtoNet --backbone_class ConvNet --dataset cub-buffer --model_path {paths[-1]}", 
+   # f"python get_buffer_mixup_imgs.py --model_class ProtoNet --backbone_class ConvNet --dataset Animals-buffer --model_path {paths[-2]}" 
+   f"python get_buffer_mixup_imgs.py --model_class ProtoNet --backbone_class Res12 --dataset miniImagenet-buffer --model_path {paths[2]}" 
 ]
 
 # commands = [

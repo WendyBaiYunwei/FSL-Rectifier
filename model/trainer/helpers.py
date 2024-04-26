@@ -86,10 +86,17 @@ def prepare_model(args):
     model = eval(args.model_class)(args)
 
     # load pre-trained model (no FC weights)
-    if args.init_weights is not None:
+    if args.init_weights is not None or args.model_path is not None:
         model_dict = model.state_dict()        
-        pretrained_dict = torch.load(args.init_weights)['params']
-        if args.backbone_class == 'ConvNet':
+        weights = args.init_weights
+        if args.model_path:
+            weights = args.model_path
+        pretrained_dict = torch.load(weights)['params']
+        # print(torch.load(weights)['params'].keys())
+        # exit()
+        # todo, does not generalize well to all datasets
+        onekey = list(pretrained_dict.keys())[0]
+        if args.backbone_class == 'ConvNet' and 'encoder.encoder' not in onekey:
             pretrained_dict = {'encoder.'+k: v for k, v in pretrained_dict.items()}
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
         print(pretrained_dict.keys())

@@ -10,7 +10,7 @@ def default_loader(path):
     try:
         image = Image.open(path).convert('RGB')
     except:
-        image = image.replace('sim0', '')
+        image = path.replace('sim0', '')
         image = image.replace('sim1', '')
         image = image.replace('sim2', '')
         image = Image.open(path).convert('RGB')
@@ -40,12 +40,12 @@ class ImageLabelFilelist(data.Dataset):
                  transform=None,
                  filelist_reader=default_filelist_reader,
                  loader=default_loader,
-                 dataset='Animals',
+                 dataset='animals',
                  return_paths=False):
         self.root = root
         self.im_list = filelist_reader(os.path.join(filelist))
         self.transform = transform
-        if dataset in ['Animals', 'cub', 'miniImagenet']:
+        if dataset in ['animals', 'cub', 'miniImagenet']:
             self.loader = loader
         elif dataset == 'Traffic':
             self.loader = transform_loader

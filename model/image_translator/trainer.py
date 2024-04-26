@@ -108,7 +108,7 @@ class Translator_Trainer(nn.Module):
 
     def picker_resume(self, checkpoint_dir, hp, multigpus):
         this_model = self.model.module if multigpus else self.model
-        if self.cfg['dataset'] == 'Animals':
+        if self.cfg['dataset'] == 'animals':
             last_model_name = 'animals_gen.pt'
         elif self.cfg['dataset'] == 'Traffic':
             last_model_name = 'traffic_translator_gen.pt'

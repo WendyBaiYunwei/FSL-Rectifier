@@ -15,11 +15,12 @@ from model.image_translator.utils import loader_from_list, get_config
 
 expansion_size = 3
 
-config = get_config('./miniImagenet.yaml') # change to traffic.yaml for traffic
-config['batch_size'] = 1
-
 parser = get_command_line_parser()
 args = postprocess_args(parser.parse_args())
+
+dataset = args.dataset.split('-')[0]
+config = get_config(f'./{dataset}.yaml') 
+config['batch_size'] = 1
 
 # note: please remove normalization in the dataloader first
 train_loader_image_translator = loader_from_list(
@@ -44,16 +45,16 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset=args.dataset) # pre-processing mode set to `Animals` to prevent CLAHE transformations for test samples
+    dataset=args.dataset) # pre-processing mode set to `animals` to prevent CLAHE transformations for test samples
 
+model, _ = prepare_model(args)
 for i, data in enumerate(testloader):
     if i % 10 == 0:
         print(f'{i} / {len(testloader)}')
     original_img = data[0].cuda()
     label = data[1]
     paths = data[2]
-
-    model, _ = prepare_model(args)
+    
     imgs = pick_mixup(original_img, paths, train_loader_image_translator, model = model,\
                     expansion_size=expansion_size, random=False, get_img=False, get_original=False, augtype='sim-mix-up')
     if imgs is None:

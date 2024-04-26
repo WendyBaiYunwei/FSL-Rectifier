@@ -10,7 +10,7 @@ from model.image_translator.utils import get_train_loaders, get_config
 if __name__ == '__main__':
     parser = get_command_line_parser()
     args = postprocess_args(parser.parse_args())
-    if args.dataset == 'Animals':
+    if args.dataset == 'animals':
         config = get_config('animals.yaml')
     elif args.dataset == 'Traffic':
         config = get_config('traffic.yaml')

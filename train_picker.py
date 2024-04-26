@@ -46,7 +46,7 @@ model_name = os.path.splitext(os.path.basename(opts.config))[0]
 
 if config['dataset'] == 'Traffic':
     output_directory = os.path.join(opts.output_path + "/outputs/traffic_picker", model_name)
-elif config['dataset'] == 'Animals':
+elif config['dataset'] == 'animals':
     output_directory = os.path.join(opts.output_path + "/outputs/animals_picker", model_name)
 
 checkpoint_directory, image_directory = make_result_folders(output_directory)

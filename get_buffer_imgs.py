@@ -16,7 +16,7 @@ config['batch_size'] = 1
 
 image_translator = Translator_Trainer(config)
 image_translator.cuda()
-if config['dataset'] == 'Animals':
+if config['dataset'] == 'animals':
     image_translator.load_ckpt('animals_gen.pt')
 else:
     image_translator.load_ckpt('traffic_translator_gen.pt')
@@ -24,7 +24,7 @@ image_translator.eval()
 
 picker = Translator_Trainer(config)
 picker.cuda()
-if config['dataset'] == 'Animals':
+if config['dataset'] == 'animals':
     picker.load_ckpt('animals_picker.pt')
     picker_loader = loader_from_list(
         root=config['data_folder_train'],
@@ -62,7 +62,7 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset='Animals') # pre-processing mode set to `Animals` to prevent CLAHE transformations for test samples
+    dataset='animals') # pre-processing mode set to `animals` to prevent CLAHE transformations for test samples
 
 for i, data in enumerate(testloader):
     if i % 10 == 0:
@@ -70,7 +70,7 @@ for i, data in enumerate(testloader):
     original_img = data[0].cuda()
     label = data[1]
     paths = data[2]
-    if config['dataset'] == 'Animals':
+    if config['dataset'] == 'animals':
         imgs = image_translator.model.pick_animals(picker, original_img, picker_loader,\
              expansion_size=expansion_size, random=False, get_original=True, type='image_translator')
     else:
