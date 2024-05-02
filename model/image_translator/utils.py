@@ -25,8 +25,8 @@ def loader_from_list(
         file_list,
         batch_size,
         new_size=None,
-        height=128,
-        width=128,
+        height=84,
+        width=84,
         crop=True,
         num_workers=4,
         shuffle=True,
@@ -97,8 +97,8 @@ def get_dichomy_loader(
         file_list,
         batch_size,
         new_size=None,
-        height=128,
-        width=128,
+        height=84,
+        width=84,
         crop=True,
         num_workers=4,
         shuffle=True,
@@ -329,7 +329,7 @@ def get_orig(img_name):
     img_name = '.'.join(img_name.split('.')[:-1])
     name = img_name + '.jpg'
     image = default_loader(name)
-    transform = get_transform(140, 128, 128, dataset='animals')
+    transform = get_transform(84, 84, 84, dataset='animals')
     image = transform(image).cuda()
     return image
 
@@ -340,11 +340,11 @@ def get_recon(img_name):
     image = default_loader(name)
     transform = get_transform(84, 84, 84, dataset='animals')
     image = transform(image).cuda()
-    return image # 1,3,128,128
+    return image # 1,3,84,84
 
 # for animals dataset only
 def get_trans(img_name, expansion_size):
-    images = torch.empty(expansion_size, 3, 128, 128).cuda()
+    images = torch.empty(expansion_size, 3, 84, 84).cuda()
     img_name = '.'.join(img_name.split('.')[:-1])
     transform = get_transform(84, 84, 84)
     for i in range(1, expansion_size + 1):

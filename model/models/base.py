@@ -30,8 +30,8 @@ class FewShotModel(nn.Module):
             return  (torch.Tensor(np.arange(args.way*args.shot)).long().view(1, args.shot, args.way), 
                      torch.Tensor(np.arange(args.way*args.shot, args.way * (args.shot + args.query))).long().view(1, args.query, args.way))
         else:
-            return  (torch.Tensor(np.arange(args.eval_way*args.eval_shot)).long().view(1, args.eval_shot, args.eval_way), 
-                     torch.Tensor(np.arange(args.eval_way*args.eval_shot, args.eval_way * (args.eval_shot + args.eval_query))).long().view(1, args.eval_query, args.eval_way))
+            return  (torch.Tensor(np.arange(5*1)).long().view(1, 1, 5), 
+                     torch.Tensor(np.arange(5*1, 5 * (1 + 1))).long().view(1, 1, 5))
 
     def forward(self, x, get_feature=False, qry_expansion=0, spt_expansion=0):
         if get_feature:
@@ -39,20 +39,19 @@ class FewShotModel(nn.Module):
         else:
             x = x.squeeze(0)
             instance_embs = self.encoder(x)           #len, emb
-
             spt_cutoff = 5*(1 + spt_expansion)
             spt_embs = instance_embs[:spt_cutoff].reshape(1 + spt_expansion, 5, -1)
             new_spt = spt_embs.mean(dim=0)
 
             new_qry = instance_embs[spt_cutoff:]
-            new_qry = new_qry.reshape(1+qry_expansion, self.args.eval_query * 5, -1).mean(0)
-            
+            new_qry = new_qry.reshape(1+qry_expansion, 1 * 5, -1).mean(0)
             new_embs = torch.cat([new_spt, new_qry]).reshape(len(new_spt) + len(new_qry), -1)
-            support_idx, query_idx = self.split_instances(x)
+            support_idx, query_idx = self.split_instances(x) 
             if self.training:
                 logits, logits_reg = self._forward(new_embs, support_idx, query_idx)
                 return logits, logits_reg
             else:
+                # always 5-way-1-shot
                 logits = self._forward(new_embs, support_idx, query_idx)
                 return logits
 

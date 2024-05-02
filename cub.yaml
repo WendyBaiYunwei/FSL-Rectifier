@@ -15,5 +15,5 @@ crop_image_width: 84        # random crop image of this width
 data_folder_train: /mnt/hdd/yw/CUB_200_2011/images
 data_list_train: /mnt/hdd/yw/CUB_200_2011/train.txt
 data_folder_test: /mnt/hdd/yw/CUB_200_2011/images
-data_list_test: /mnt/hdd/yw/CUB_200_2011/test.txt
+data_list_test: /mnt/hdd/yw/CUB_200_2011/fast_test.txt ##todo
 dataset: 'cub'

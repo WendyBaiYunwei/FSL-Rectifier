@@ -199,7 +199,7 @@ def get_command_line_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=30)
     parser.add_argument('--episodes_per_epoch', type=int, default=100)
-    parser.add_argument('--num_eval_episodes', type=int, default=100)
+    parser.add_argument('--num_eval_episodes', type=int, default=10000)
     parser.add_argument('--model_class', type=str, default='FEAT', 
                         choices=['MatchNet', 'ProtoNet', 'BILSTM', 'DeepSet', 'GCN', 'FEAT', 'FEATSTAR', 'SemiFEAT', 'SemiProtoFEAT']) # None for MatchNet or ProtoNet
     parser.add_argument('--use_euclidean', action='store_true', default=False)    
@@ -232,7 +232,7 @@ def get_command_line_parser():
     parser.add_argument('--init_weights', type=str, default=None)
     
     parser.add_argument('--mom', type=float, default=0.9)
-    parser.add_argument('--weight_decay', type=float, default=0.0005) # we find this weight decay value works the best
+    parser.add_argument('--weight_decay', type=float, default=0.0005)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--log_interval', type=int, default=50)
     parser.add_argument('--eval_interval', type=int, default=1)
@@ -243,20 +243,21 @@ def get_command_line_parser():
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
     parser.add_argument('--aug_type', type=str, choices=['random-image_translator', 'image_translator', 'mix-up', \
-        'random-mix-up', 'sim-mix-up'], default=None)
+        'random-mix-up', 'sim-mix-up', 'crop+rotate', 'original', 'true-test', 'color', 'affine'], default=None)
     return parser
 
+# input: one img 3x84x84, output: augmentations
 def get_augmentations(img, expansion, type, get_img=False):
-    expansions = torch.empty(expansion, img.shape[1], img.shape[2], img.shape[3]).cuda()
+    expansions = torch.empty(expansion, img.shape[0], img.shape[1], img.shape[2]).cuda()
     crop_rotate = transforms.Compose([
         transforms.RandomRotation(degrees=(0, 180)),
-        transforms.RandomCrop(size=(128, 128))
+        transforms.RandomCrop(size=(84, 84))
     ])
     transformations = {
         'affine': transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75)),
         'crop+rotate': crop_rotate,
         'color': transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        'original': transforms.Resize(128)
+        'original': transforms.Resize(84)
     }
     for expansion_i in range(expansion):
         augmented_image = transformations[type](img)
@@ -285,21 +286,21 @@ def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = F
         qry_img = qry_img.squeeze()
         scores = get_sim_scores_model(qry_img.unsqueeze(0), nb_images, model)
     if random == False and picker is not None:
-        scores, idxs = torch.sort(scores, descending=False) 
+        scores, idxs = torch.sort(scores, descending=False)
         idxs = idxs.long()
         selected_nbs = [candidate_neighbours[i.item()] for i in idxs]
         selected_nbs = selected_nbs[:expansion_size]
     elif random == False and picker is None:
         scores, idxs = torch.sort(scores, descending=True)
         # print(scores[expansion_size - 1])
-        if scores[expansion_size - 1] < 0.8:
-            return None
+        # if scores[expansion_size - 1] < 0.8:
+        #     return None
         # else:
         idxs = idxs.long()
         selected_nbs = nb_images.index_select(dim=0, index=idxs)
         selected_nbs = selected_nbs[:expansion_size]
     else:
-        selected_nbs = candidate_neighbours[:expansion_size]
+        selected_nbs = nb_images[:expansion_size]
     if picker is not None: # animal dataset
         qry = get_orig(qry)
         if get_original == True:
@@ -333,6 +334,12 @@ def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get
     candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
     assert len(candidate_neighbours) >= expansion_size
     with torch.no_grad():
+        new_size = (128, 128)
+        qry = qry.unsqueeze(0)
+        qry = F.interpolate(qry, size=new_size, mode='bilinear', align_corners=False)
+        candidate_neighbours = F.interpolate(candidate_neighbours, size=new_size,\
+             mode='bilinear', align_corners=False)
+
         qry_features = picker.enc_content(qry).mean((2,3)) # batch=1, feature_size
         nb_features = picker.enc_content(candidate_neighbours).mean((2,3))
         nb_features_trans = nb_features.transpose(1,0)
@@ -356,6 +363,8 @@ def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get
         nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)
         if augtype == 'image_translator' or augtype == 'random-image_translator':
             translation = translator.translate_simple(nb, class_code)
+            translation = F.interpolate(translation, size=(84,84),\
+                mode='bilinear', align_corners=False)
         elif augtype == 'mix-up' or augtype == 'random-mix-up':
             nb = translator.translate_simple(nb, translator.compute_k_style(nb, 1))
             translation = 0.5*(nb + qry)

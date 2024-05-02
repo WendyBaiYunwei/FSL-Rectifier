@@ -189,6 +189,7 @@ class FSLTrainer(Trainer):
             translator = Translator_Trainer(self.config)
             translator.cuda()
             translator.load_ckpt('animals_gen.pt')
+            translator = translator.model
             translator.eval()
             self.translator = translator
             picker = Translator_Trainer(self.config)
@@ -221,15 +222,12 @@ class FSLTrainer(Trainer):
         if torch.cuda.is_available():
             label = label.cuda()
 
-        
         old_shot = args.eval_shot
         old_qry = args.eval_query
+        qry_expansion = args.qry_expansion
+        spt_expansion = args.spt_expansion
         with torch.no_grad():
             for i, batch in tqdm(enumerate(self.test_loader_fsl)):
-                qry_expansion = args.qry_expansion
-                spt_expansion = args.spt_expansion
-                if i % 100 == 0:
-                    print(i)
                 if i >= args.num_eval_episodes:
                     break
                 if torch.cuda.is_available():
@@ -238,20 +236,24 @@ class FSLTrainer(Trainer):
                     data = batch[0]
                 paths = batch[-1]
 
-                if args.dataset == 'animals':
-                    new_data = torch.empty(data.shape).cuda()
-                    for img_i in range(len(new_data)):
-                        img_name = paths[img_i]
-                        new_data[img_i] = get_recon(img_name)
-                else:
-                    new_data = data
+                if augtype == 'true-test':
+                    logits = self.model(data, qry_expansion=qry_expansion, spt_expansion=spt_expansion)
+                    label = label[:5]
+                    loss = F.cross_entropy(logits, label)
+                    acc = count_acc(logits, label)
+                    expansion_res[i-1, 0] = loss.item()
+                    expansion_res[i-1, 1] = acc
+                    baseline[i-1, 0] = loss.item()
+                    baseline[i-1, 1] = acc
+                    continue
+
+                new_data = data
                 logits = self.model(new_data) # get baseline results
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
                 baseline[i-1, 0] = loss.item()
                 baseline[i-1, 1] = acc
 
-                
                 original_spt = data[:5, :, :, :]
                 reconstructed_spt = new_data[:5, :, :, :]
 
@@ -276,12 +278,7 @@ class FSLTrainer(Trainer):
                 elif augtype in ['sim-mix-up', 'image_translator', 'mix-up', 'random-mix-up', 'random-image_translator']: 
                     expanded_spt = self.get_class_expansion(original_spt,\
                             spt_expansion, img_names=img_names, augtype=augtype)
-                    if expanded_spt is not None:
-                        combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
-                    else:
-                        combined_spt = reconstructed_spt
-                        spt_expansion = 0
-                        qry_expansion = 0
+                    combined_spt = torch.cat([reconstructed_spt, expanded_spt], dim=0)
                 # have support expansion, use reconstructed support to expand support
                 # have transform, use reconstructed support for transformation
                 elif self.args.add_transform:
@@ -309,15 +306,6 @@ class FSLTrainer(Trainer):
                         class_chunk = data[class_chunk_i:class_chunk_i+5]
                         expansion = self.get_class_expansion(class_chunk, qry_expansion,\
                         img_names = img_names, augtype=augtype)
-                        if expansion is None:
-                            combined_spt = reconstructed_spt ##todo
-                            qry_expansion = 0
-                            spt_expansion = 0
-                            break
-                            # expansion = class_chunk.repeat()
-                        # else:
-                        #     print(expansion.shape)
-                        #     exit()
                         new_qries[k] = expansion
                         k += 1
                 else:# use reconstructed data
@@ -325,13 +313,6 @@ class FSLTrainer(Trainer):
                         class_chunk = new_data[class_chunk_i:class_chunk_i+5]
                         expansion = self.get_class_expansion(class_chunk, qry_expansion, augtype=augtype,\
                             img_names=img_names)
-                        
-                        if expansion is None:
-                            combined_spt = reconstructed_spt ##todo
-                            qry_expansion = 0
-                            spt_expansion = 0
-                            break
-                            # expansion = class_chunk.repeat()
                         new_qries[k] = expansion
                         k += 1
                 new_qries = new_qries.flatten(end_dim=1)
@@ -362,7 +343,7 @@ class FSLTrainer(Trainer):
         result_str += f'{augtype} Test acc={va} + {vap}\n'
 
         with open(f'./outputs/{args.model_class}-{args.backbone_class}-{args.dataset}-{args.use_euclidean}-' +\
-        f'{args.add_transform}-{args.spt_expansion}-{args.qry_expansion}-record.txt', 'w') as file:
+        f'{args.aug_type}train-{args.spt_expansion}-{args.qry_expansion}-record-testnb.txt', 'w') as file:
             file.write(result_str)
         return vl, va, vap
     
@@ -375,16 +356,16 @@ class FSLTrainer(Trainer):
             img_data = data[class_i, :, :, :]
             if augtype == 'image_translator': # for animals dataset
                 class_expansions = get_trans(img_names[class_i], expansion_size=expansion)
-            elif augtype == 'random-image_translator' or augtype == 'random-mix-up': # for animals dataset
-                class_expansions = pick_translate(self.translator, self.picker, img_data, img, self.train_loader_image_translator, \
+            elif augtype == 'random-image_translator': # for animals dataset
+                class_expansions = pick_translate(self.translator, self.picker, img_data, self.train_loader_image_translator, \
                         expansion_size=expansion, random=True, get_img=False, get_original=False, augtype=augtype)
-            elif augtype == 'mix-up': # for animals dataset
-                class_expansions = pick_mixup(img_data, img, self.train_loader_image_translator, model = self.model,\
-                        expansion_size=expansion, random=False, get_img=False, get_original=False, augtype=augtype, picker=self.picker)
             elif augtype == 'sim-mix-up':
                 class_expansions = get_sim(img_names[class_i], expansion_size=expansion, dataset=self.args.dataset)
+            elif augtype == 'random-mix-up': # for animals dataset
+                class_expansions = pick_mixup(img_data, img, self.train_loader_image_translator, model = self.model,\
+                    expansion_size=expansion, random=True, get_img=False, get_original=False, augtype=augtype)
             else: # traditional augmentation
-                class_expansions = get_augmentations(img, expansion, augtype, get_img=False)
+                class_expansions = get_augmentations(img_data, expansion, augtype, get_img=False)
             if class_expansions == None:
                 return None
             expanded[class_i] = class_expansions
