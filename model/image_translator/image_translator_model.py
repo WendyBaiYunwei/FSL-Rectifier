@@ -146,9 +146,9 @@ class Translator_Model(nn.Module):
 
     def get_score(self, qry, nb):
         with torch.no_grad():
-            c_xa = self.gen.enc_content(nb.detach())
-            s_xb = self.gen.enc_class_model(qry.detach())
-            translation = self.gen.decode(c_xa, s_xb)
+            c_xa = self.gen_test.enc_content(nb.detach())
+            s_xb = self.gen_test.enc_class_model(qry.detach())
+            translation = self.gen_test.decode(c_xa, s_xb)
             fake_degree = self.dis.get_quality(qry, translation)
         return fake_degree
     

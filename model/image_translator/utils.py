@@ -339,7 +339,7 @@ def get_recon(img_name):
     name = img_name + f'_recon.jpg'
     image = default_loader(name)
     transform = get_transform(84, 84, 84, dataset='animals')
-    image = transform(image).cuda()
+    image = transform(image).cuda().unsqueeze(0)
     return image # 1,3,84,84
 
 # for animals dataset only

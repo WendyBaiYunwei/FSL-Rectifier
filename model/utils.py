@@ -244,6 +244,8 @@ def get_command_line_parser():
     parser.add_argument('--add_transform', type=str, choices=['perspective', 'crop+rotate', 'original'], default=None)
     parser.add_argument('--aug_type', type=str, choices=['random-image_translator', 'image_translator', 'mix-up', \
         'random-mix-up', 'sim-mix-up', 'crop+rotate', 'original', 'true-test', 'color', 'affine'], default=None)
+    parser.add_argument('--note', type=str, default='')
+    
     return parser
 
 # input: one img 3x84x84, output: augmentations
@@ -268,9 +270,9 @@ def get_augmentations(img, expansion, type, get_img=False):
     return expansions
 
 def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = False, \
-    random=False, img_id='', get_original=True, augtype='mix-up', picker=None): 
+    random=False, get_original=True, augtype='mix-up', picker=None): 
     if expansion_size == 0:
-        get_original = True
+        assert get_original == True
     candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
     nb_images = candidate_neighbours[0].cuda() # extracts img from img+label+name
     candidate_neighbours = candidate_neighbours[2] # extracts name from img+label+name
@@ -292,10 +294,6 @@ def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = F
         selected_nbs = selected_nbs[:expansion_size]
     elif random == False and picker is None:
         scores, idxs = torch.sort(scores, descending=True)
-        # print(scores[expansion_size - 1])
-        # if scores[expansion_size - 1] < 0.8:
-        #     return None
-        # else:
         idxs = idxs.long()
         selected_nbs = nb_images.index_select(dim=0, index=idxs)
         selected_nbs = selected_nbs[:expansion_size]
@@ -322,14 +320,38 @@ def pick_mixup(qry_img, qry, picker_loader, model, expansion_size=0, get_img = F
             nb = selected_nbs[selected_i]
             translation = 0.5*(nb + qry)
             translations.append(translation)
-
     return torch.stack(translations).squeeze()
+
+def pick_nb(qry_img, qry, picker_loader, model, expansion_size=0, get_img = False, \
+    random=False, get_original=True, augtype='mix-up', picker=None): 
+    if expansion_size == 0:
+        get_original = True
+    candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
+    nb_images = candidate_neighbours[0].cuda() # extracts img from img+label+name
+    candidate_neighbours = candidate_neighbours[2] # extracts name from img+label+name
+
+    assert len(nb_images) >= expansion_size
+    
+    qry_img = qry_img.squeeze()
+    scores = get_sim_scores_model(qry_img.unsqueeze(0), nb_images, model)
+    scores, idxs = torch.sort(scores, descending=True)
+    idxs = idxs.long()
+    candidate_neighbours = [candidate_neighbours[idx] if \
+        scores[idx] > 0.9 else qry for idx in idxs]
+    if get_original == True:
+        nbs = [qry_img]
+    else:
+        nbs = []
+    for selected_i in range(expansion_size):
+        nb = candidate_neighbours[selected_i] ##todo
+        nbs.append(nb)
+    return nbs
     
         
 def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get_img = False, \
-    random=False, img_id='', get_original=True, augtype='image_translator'): 
+    random=False, get_original=False, augtype='image_translator'): 
     if expansion_size == 0:
-        get_original = True
+        assert get_original == True
     candidate_neighbours = next(iter(picker_loader)) # from train sampler, size: pool_size, 3, h, w + label_size
     candidate_neighbours = candidate_neighbours[0].cuda() # extracts img from img+label
     assert len(candidate_neighbours) >= expansion_size
@@ -357,7 +379,6 @@ def pick_translate(translator, picker, qry, picker_loader, expansion_size=0, get
         translations = [qry]
     else:
         translations = []
-    
     
     for selected_i in range(expansion_size):
         nb = selected_nbs[selected_i, :, :, :].unsqueeze(0)

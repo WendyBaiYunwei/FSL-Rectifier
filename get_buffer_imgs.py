@@ -8,49 +8,32 @@ from PIL import Image
 import torch
 from model.image_translator.utils import loader_from_list, get_config
 from model.image_translator.trainer import Translator_Trainer
+from model.utils import pick_translate
 
 expansion_size = 3
 
-config = get_config('./animals.yaml') # change to traffic.yaml for traffic
+config = get_config('./animals.yaml') 
 config['batch_size'] = 1
 
 image_translator = Translator_Trainer(config)
-image_translator.cuda()
-if config['dataset'] == 'animals':
-    image_translator.load_ckpt('animals_gen.pt')
-else:
-    image_translator.load_ckpt('traffic_translator_gen.pt')
+image_translator.load_ckpt('animals_gen.pt')
+image_translator = image_translator.model.cuda()
 image_translator.eval()
 
-picker = Translator_Trainer(config)
-picker.cuda()
-if config['dataset'] == 'animals':
-    picker.load_ckpt('animals_picker.pt')
-    picker_loader = loader_from_list(
-        root=config['data_folder_train'],
-        file_list=config['data_list_train'],
-        batch_size=config['pool_size'],
-        new_size=140,
-        height=128,
-        width=128,
-        crop=True,
-        num_workers=4,
-        dataset=config['dataset'])
-else:
-    picker.load_ckpt('traffic_picker.pt')
-    picker_loader = loader_from_list(
-        root=config['data_folder_test'],
-        file_list=config['data_list_test'],
-        batch_size=config['pool_size'],
-        new_size=140,
-        height=128,
-        width=128,
-        crop=True,
-        num_workers=4,
-        dataset=config['dataset'])
-
-picker.eval()
+picker = Translator_Trainer(config).cuda()
+picker.load_ckpt('animals_picker.pt')
+picker_loader = loader_from_list(
+    root=config['data_folder_train'],
+    file_list=config['data_list_train'],
+    batch_size=config['pool_size'],
+    new_size=140,
+    height=128,
+    width=128,
+    crop=True,
+    num_workers=4,
+    dataset=config['dataset'])
 picker = picker.model.gen
+picker.eval()
 
 testloader = loader_from_list(
     root=config['data_folder_test'],
@@ -62,22 +45,19 @@ testloader = loader_from_list(
     crop=True,
     num_workers=4,
     return_paths=True,
-    dataset='animals') # pre-processing mode set to `animals` to prevent CLAHE transformations for test samples
+    dataset=config['dataset']) 
 
 for i, data in enumerate(testloader):
     if i % 10 == 0:
         print(f'{i} / {len(testloader)}')
-    original_img = data[0].cuda()
+    original_img = data[0].cuda(1).squeeze()
     label = data[1]
     paths = data[2]
-    if config['dataset'] == 'animals':
-        imgs = image_translator.model.pick_animals(picker, original_img, picker_loader,\
-             expansion_size=expansion_size, random=False, get_original=True, type='image_translator')
-    else:
-        imgs = image_translator.model.pick_traffic(picker, original_img, picker_loader,\
-             expansion_size=expansion_size, random=False, get_original=True, type='image_translator')
+
+    imgs = pick_translate(image_translator, picker, original_img, picker_loader,\
+            expansion_size=expansion_size, get_original=True)
     # save image
-    for selected_i in range(expansion_size + 1):
+    for selected_i in range(expansion_size):
         translation = imgs[selected_i]
         image = translation.detach().cpu().squeeze().numpy()
         image = np.transpose(image, (1, 2, 0))

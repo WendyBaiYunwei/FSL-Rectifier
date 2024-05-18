@@ -44,9 +44,7 @@ test_loader = loaders[2]
 
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
 
-if config['dataset'] == 'Traffic':
-    output_directory = os.path.join(opts.output_path + "/outputs/traffic_picker", model_name)
-elif config['dataset'] == 'animals':
+if config['dataset'] == 'animals':
     output_directory = os.path.join(opts.output_path + "/outputs/animals_picker", model_name)
 
 checkpoint_directory, image_directory = make_result_folders(output_directory)
@@ -58,18 +56,18 @@ iterations = trainer.picker_resume(checkpoint_directory,
 while True:
     for it, (co_data, cl_data) in enumerate(zip(train_loader, test_loader)):
         with Timer("Elapsed time in update: %f"):
-            loss = trainer.traffic_picker_update(co_data, cl_data, config)
+            loss = trainer.picker_update(co_data, cl_data, config)
             print('loss: %.4f' % (loss))
 
         if (iterations + 1) % config['log_iter'] == 0:
             print("Iteration: %08d/%08d" % (iterations + 1, max_iter))
 
-        if (iterations + 1) % config['snapshot_save_iter'] == 0:
+        if (iterations + 1) % 1000 == 0:
             print('change checkpoint dir', checkpoint_directory)
             trainer.save(checkpoint_directory, iterations, opts.multigpus)
             print('Saved model at iteration %d' % (iterations + 1))
-
-        iterations += 1
-        if iterations >= max_iter:
             print("Finish Training")
             sys.exit(0)
+
+        iterations += 1
+
